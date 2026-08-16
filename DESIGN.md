@@ -3,7 +3,7 @@
 > Versão digital do *Big A## Calendar* (Jesse Itzler): o ano inteiro em uma tela,
 > uma linha por mês, clicável, para marcar aventuras, hábitos e viagens com stickers.
 
-**Status:** rascunho aprovado para implementação · **Autor:** Fabrício · **Data:** 2026-08-16
+**Status:** fase 1 implementada · **Autor:** Fabrício · **Data:** 2026-08-16
 
 ---
 
@@ -218,12 +218,12 @@ O toggle entre modos é um ícone discreto no canto e as teclas `P`/`I`.
 | Tecla | Ação |
 |-------|------|
 | `1`–`9` | seleciona a atividade ativa |
-| `P` / `I` | alterna modo Pincel / Inspeção |
-| `S` | abre/fecha o painel de estatísticas |
 | `F` | tela cheia (Fullscreen API) |
 | `←` `→` | ano anterior / próximo |
 | `Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z` | desfazer / refazer |
-| `Esc` | fecha painel, popover ou cancela arrasto |
+| `Esc` | fecha o editor de atividades |
+| `P` / `I` | alterna modo Pincel / Inspeção — *fase 2* |
+| `S` | abre/fecha o painel de estatísticas — *fase 2* |
 
 **Undo/redo não é opcional.** Pintar por arrasto erra fácil, e sem desfazer o recorte da §5.1
 destrói dados de forma assustadora. Histórico em memória, ~50 passos, limpo ao trocar de ano.
@@ -358,7 +358,12 @@ Pincel com clique e arrasto · undo/redo · tela cheia · seletor de ano · feri
 JSON · deploy no Pages.
 
 **Pronto quando:** eu abro em tela cheia, marco um mês inteiro só com mouse e teclado, recarrego
-a página e está tudo lá.
+a página e está tudo lá. ✅ **Entregue.**
+
+> **Aprendido na implementação:** células e barras precisam de `grid-column` explícito. Com as
+> células auto-posicionadas, cada barra inserida deslocava os dias para o lado — inclusive sob o
+> cursor no meio do arrasto. O contador de metas ficou no dock expandido (§7.5); o painel de
+> estatísticas completo (§7.6) continua na fase 2.
 
 ### Fase 2 — Refinamento
 Modo Inspeção e popover · notas · painel de estatísticas com metas e sequências · leitura no

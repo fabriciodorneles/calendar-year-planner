@@ -1,0 +1,243 @@
+.app {
+  height: 100dvh;
+  padding: var(--toolbar-h) 12px 10px calc(var(--dock-collapsed) + 12px);
+  display: flex;
+  flex-direction: column;
+}
+
+.grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: var(--label-w) 1fr;
+  grid-template-rows: repeat(12, 1fr);
+  border: 1px solid var(--rule-strong);
+  container-type: size;
+  min-height: 0;
+  user-select: none;
+}
+
+/* Rótulo do mês */
+.month-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 10px;
+  font-size: clamp(13px, 2.6cqh, 30px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--label);
+  border-bottom: 1px solid var(--rule);
+}
+
+.grid > .month-label:last-of-type,
+.month-row:last-of-type { border-bottom: none; }
+
+/* Uma linha de mês: 31 colunas; células e barras ocupam a mesma faixa. */
+.month-row {
+  display: grid;
+  grid-template-columns: repeat(31, 1fr);
+  grid-template-rows: 1fr;
+  border-bottom: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
+  position: relative;
+}
+
+/* Célula e barra recebem grid-column explícito (a barra em MonthRow, a célula
+   pelo número do dia). Sem isso as células ficam auto-posicionadas e cada barra
+   inserida empurra os dias para o lado — inclusive sob o cursor durante o arrasto. */
+.day {
+  grid-row: 1;
+  border-right: 1px solid var(--rule);
+  background: var(--cell);
+  position: relative;
+  padding: 2px 0 0 3px;
+  font-size: clamp(6px, 1.5cqh, 13px);
+  font-weight: 400;
+  color: var(--label);
+  line-height: 1;
+  overflow: hidden;
+}
+
+.day--weekend { background: var(--cell-weekend); }
+.day--empty { background: transparent; border-right-color: transparent; }
+
+.day--today::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border: 2px solid var(--today);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Feriado: contexto, nunca sticker. */
+.day--holiday::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  bottom: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--today);
+  opacity: 0.55;
+}
+
+/* Barras de marcação, por cima das células mas transparentes ao ponteiro:
+   o alvo do clique/arrasto é sempre a célula de baixo. */
+.mark {
+  grid-row: 1;
+  pointer-events: none;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1px;
+  overflow: hidden;
+  font-size: clamp(8px, 3.2cqh, 26px);
+  line-height: 1;
+}
+
+.mark--open-start { margin-left: 0; }
+.mark--open-end { margin-right: 0; }
+
+.mark__note {
+  position: absolute;
+  top: 0;
+  right: 0;
+  border-style: solid;
+  border-width: 0 7px 7px 0;
+  border-color: transparent rgba(255, 255, 255, 0.85) transparent transparent;
+}
+
+.mark--preview { opacity: 0.45; }
+
+/* ---- Dock lateral: colapsado por padrão, expande POR CIMA do grid ---- */
+.dock {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100dvh;
+  width: var(--dock-collapsed);
+  background: var(--paper);
+  border-right: 1px solid var(--rule-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+  z-index: 20;
+  transition: width 140ms ease;
+  overflow: hidden;
+}
+
+.dock:hover, .dock:focus-within {
+  width: var(--dock-expanded);
+  box-shadow: 6px 0 24px rgba(74, 66, 57, 0.12);
+}
+
+.dock__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px;
+  height: 34px;
+  border: none;
+  background: none;
+  white-space: nowrap;
+  text-align: left;
+  flex: 0 0 auto;
+}
+
+.dock__item:hover { background: var(--cell-weekend); }
+.dock__item[aria-pressed='true'] { background: var(--cell-weekend); box-shadow: inset 3px 0 0 var(--today); }
+
+.dock__swatch {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+}
+
+.dock__meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.dock__name { font-size: 13px; letter-spacing: 0.02em; overflow: hidden; text-overflow: ellipsis; }
+.dock__count { font-size: 11px; color: var(--label); }
+.dock__key { font-size: 11px; color: var(--label); padding-right: 6px; }
+.dock__spacer { flex: 1; }
+
+.dock__bar {
+  height: 3px;
+  background: var(--rule);
+  margin-top: 2px;
+}
+.dock__bar > i { display: block; height: 100%; }
+
+/* ---- Barra de controles flutuante ---- */
+.toolbar {
+  position: fixed;
+  top: 8px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 20;
+  background: rgba(251, 249, 245, 0.9);
+  padding: 4px 6px;
+  border: 1px solid var(--rule);
+}
+
+.toolbar button { padding: 2px 8px; font-size: 13px; line-height: 1.6; }
+/* Discreta em repouso para não competir com o calendário. */
+.toolbar { opacity: 0.5; transition: opacity 120ms ease; }
+.toolbar:hover, .toolbar:focus-within { opacity: 1; }
+.toolbar__year { font-size: 15px; font-weight: 700; letter-spacing: 0.04em; padding: 0 4px; }
+.toolbar button:disabled { opacity: 0.35; cursor: default; }
+
+/* ---- Modal de atividades ---- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(74, 66, 57, 0.28);
+  display: grid;
+  place-items: center;
+  z-index: 30;
+}
+
+.modal {
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  width: min(560px, 92vw);
+  max-height: 82vh;
+  overflow: auto;
+  padding: 18px 20px;
+}
+
+.modal h2 { margin: 0 0 14px; font-size: 17px; letter-spacing: 0.06em; text-transform: uppercase; }
+.modal__row { display: grid; grid-template-columns: 46px 1fr 82px 44px 32px; gap: 8px; align-items: center; margin-bottom: 8px; }
+.modal__row input[type='text'], .modal__row input[type='number'] { border: 1px solid var(--rule-strong); background: var(--cell); padding: 5px 7px; min-width: 0; }
+.modal__row input[type='color'] { border: 1px solid var(--rule-strong); background: var(--cell); height: 30px; padding: 2px; }
+.modal__actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
+.modal__actions button { padding: 5px 12px; }
+.modal__hint { font-size: 12px; color: var(--label); margin: 12px 0 0; line-height: 1.5; }
+
+.mobile-note {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  padding: 6px 10px;
+  background: var(--cell-weekend);
+  border-top: 1px solid var(--rule-strong);
+  font-size: 12px;
+  text-align: center;
+  z-index: 25;
+}
+
+/* Somente leitura no celular (DESIGN.md §7.4) */
+@media (max-width: 900px) {
+  body { overflow: auto; }
+  .app { padding-left: 8px; min-width: 900px; }
+  .grid { pointer-events: none; }
+  .dock { display: none; }
+  .mobile-note { display: block; }
+}

@@ -1,0 +1,41 @@
+:root {
+  --paper: #FBF9F5;
+  --cell: #FFFFFF;
+  --cell-weekend: #F2EBE1;
+  --rule: #E5DCD0;
+  --rule-strong: #D6C9B8;
+  --label: #C9B79F;
+  --ink: #4A4239;
+  --today: #B08968;
+
+  --dock-collapsed: 44px;
+  --dock-expanded: 248px;
+  --label-w: 68px;
+  --toolbar-h: 52px;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Oswald', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button, input, select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: 1px solid var(--rule-strong);
+  cursor: pointer;
+  color: var(--ink);
+}
+
+button:hover { background: var(--cell-weekend); }
