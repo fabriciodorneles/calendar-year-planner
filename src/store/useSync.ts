@@ -46,6 +46,26 @@ export function useSync() {
         const remote = await pull(cursor);
 
         const state = usePlanner.getState();
+
+        /**
+         * Aparelho novo entrando numa conta que já tem dados: cada instalação
+         * cria seu próprio conjunto de atividades iniciais, com ids distintos,
+         * então mesclar produziria duas "Aventura", duas "Corrida"… Se este
+         * aparelho nunca marcou nada, ele adota o que vem do servidor em vez de
+         * somar as próprias atividades de fábrica.
+         */
+        const neverUsedHere =
+          cursor === 0 && state.marks.every((m) => m.deletedAt !== null);
+        const remoteHasData = remote.activities.length > 0 || remote.marks.length > 0;
+
+        if (neverUsedHere && remoteHasData) {
+          usePlanner.setState({ activities: remote.activities, marks: remote.marks });
+          writeCursor(Date.now());
+          setError(null);
+          setSyncState('idle');
+          return;
+        }
+
         const activities = mergeById(state.activities, remote.activities);
         const marks = mergeById(state.marks, remote.marks);
         if (activities.changed || marks.changed) {
