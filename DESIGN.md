@@ -42,7 +42,7 @@ Tudo abaixo foi decidido, não é sugestão. Mudanças exigem editar este doc.
 |---|---------|---------|
 | D1 | Persistência | `localStorage` na fase 1; backend na fase 2. Modelo de dados já preparado para sync. |
 | D2 | Escopo temporal | Multi-ano navegável. Atividades compartilhadas entre anos. |
-| D3 | Aparência do evento | Só o título, em fonte pequena, sobre a cor cheia — sem emoji na barra. |
+| D3 | Aparência do evento | Emoji pequeno (mesmo tamanho da fonte) + título, sobre a cor cheia. |
 | D4 | Atividades de vários dias | Arrastar pelo grid → barra contínua única. |
 | D5 | Fluxo de marcação | Dois modos com toggle: **Pincel** e **Inspeção** (popover). |
 | D6 | Stickers por dia | **Um evento por dia** (marcar de novo substitui); rotinas empilham, até 4 ícones + `+N`. |
@@ -60,7 +60,8 @@ Tudo abaixo foi decidido, não é sugestão. Mudanças exigem editar este doc.
 | D18 | Detalhes do dia | Duplo clique abre modal com título, detalhes, rotinas e feriado. |
 | D19 | Dia da semana | Abreviação de 3 letras ao lado do número (`12 sáb`), centro alinhado. |
 | D20 | Nome do feriado | Bolinha + nome no rodapé da célula. O nome encolhe quando as rotinas tomam a largura; a bolinha nunca. |
-| D21 | Emoji da atividade | Seletor em grade no editor, com 24 opções. |
+| D21 | Emoji da atividade | Seletor em grade rolável no editor, ~120 opções agrupadas por afinidade. |
+| D23 | Repetição | Materializada em ocorrências reais, semanal ou quinzenal, até o fim do ano. |
 | D22 | Camadas da célula | O evento pinta a célula inteira; número, dia da semana, feriado e rotinas ficam **por cima** da pintura (z-index 3), em branco. |
 
 ---
@@ -155,6 +156,23 @@ cinco. O `title` aparece na célula (truncado) e cai no nome da atividade quando
 Consequência aceita: não existe anotação em dia sem atividade. Se incomodar, a saída é uma
 entidade `DayNote` separada — não vamos antecipar.
 
+### 5.4 Repetição
+
+Uma marcação pode ser repetida **toda semana** ou **semana sim, semana não**, até 31/dez
+do ano dela. A repetição desloca o intervalo inteiro, então um evento de sábado a domingo
+repetido de 14 em 14 dias continua caindo em sábado e domingo — o caso que originou a
+feature (fim de semana sim, fim de semana não, com a filha).
+
+**Materializada, não guardada como regra.** Cada ocorrência é uma `Mark` de verdade:
+
+- apagar um fim de semana específico (viajei, troquei) é apagar aquela ocorrência,
+  sem inventar um conceito de "exceção à regra";
+- contadores, recorte de sobreposição, modal e export continuam funcionando sem
+  nenhum código novo.
+
+O preço é que mudar a cadência depois não reescreve o passado. O `seriesId` compartilhado
+mitiga: dá para apagar a série inteira de uma vez e refazer.
+
 ### 5.3 Eventos e rotinas
 
 | | Evento | Rotina |
@@ -244,9 +262,15 @@ sair do grid no meio do gesto não corrompe a seleção.
 
 ### 7.2 Modal do dia — duplo clique
 
-Duplo clique em qualquer dia abre o modal com: o evento (título, detalhes, intervalo, remover),
-a lista de rotinas marcadas e o feriado, se houver. Duplo clique foi escolhido em vez de clique
-simples para não competir com a pintura, que é a ação dominante.
+Duplo clique em qualquer dia abre o modal com: o evento (título, detalhes, intervalo, repetição,
+remover), a lista de rotinas marcadas e o feriado, se houver. Duplo clique foi escolhido em vez
+de clique simples para não competir com a pintura, que é a ação dominante.
+
+**O duplo clique precisa de cuidado com o toggle.** Todo duplo clique começa com dois cliques
+simples; sobre um dia já marcado isso rodava o toggle duas vezes — o primeiro recortava o dia
+da barra, o segundo criava uma marcação nova e vazia, destruindo título e série de quem só
+queria ver os detalhes. Solução: **em dia já ocupado o toggle espera 220ms** para ver se vira
+duplo clique; em dia vazio continua instantâneo, para a pintura não ficar lenta.
 
 ### 7.3 Teclado
 

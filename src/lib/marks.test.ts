@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
-  applyEvent, applyRoutine, clearRange, clearRoutine, eventAt, routinesAt, segmentFor,
+  applyEvent, applyRoutine, clearRange, clearRoutine, eventAt, removeSeries, repeatMark,
+  routinesAt, segmentFor,
 } from './marks';
 import type { Mark } from './types';
 
 const mark = (id: string, start: string, end: string, activityId = 'trip'): Mark => ({
-  id, activityId, start, end, title: null, details: null, updatedAt: 0, deletedAt: null,
+  id, activityId, start, end, title: null, details: null, seriesId: null, updatedAt: 0, deletedAt: null,
 });
 
 /** No app real isso vem do cadastro da atividade; aqui basta um conjunto de ids. */
@@ -114,5 +115,51 @@ describe('segmentFor', () => {
 
   it('devolve null quando a marcação está fora do mês', () => {
     expect(segmentFor(mark('a', '2026-01-05', '2026-01-06'), '2026-02-01', '2026-02-28')).toBeNull();
+  });
+});
+
+describe('repeatMark', () => {
+  /** O caso real: fim de semana sim, fim de semana não, com a filha. */
+  it('quinzenal preserva o par sábado-domingo', () => {
+    const weekend = mark('a', '2026-03-07', '2026-03-08'); // sáb + dom
+    const out = repeatMark([weekend], weekend, 'biweekly', isEvent)
+      .filter((m) => m.deletedAt === null);
+
+    // Toda ocorrência começa num sábado e termina num domingo.
+    const weekdays = out.map((m) => [new Date(m.start + 'T00:00:00Z').getUTCDay(),
+                                     new Date(m.end + 'T00:00:00Z').getUTCDay()]);
+    expect(weekdays.every(([s, e]) => s === 6 && e === 0)).toBe(true);
+    expect(out.map((m) => m.start).slice(0, 3)).toEqual(['2026-03-07', '2026-03-21', '2026-04-04']);
+  });
+
+  it('para no fim do ano da marcação', () => {
+    const out = repeatMark([mark('a', '2026-12-05', '2026-12-06')], mark('a', '2026-12-05', '2026-12-06'), 'weekly', isEvent)
+      .filter((m) => m.deletedAt === null);
+    expect(out.every((m) => m.start <= '2026-12-31')).toBe(true);
+    expect(out).toHaveLength(4); // 05, 12, 19, 26 de dezembro
+  });
+
+  it('semanal de rotina gera um registro por dia', () => {
+    const gym = mark('g', '2026-01-05', '2026-01-05', 'gym');
+    const out = repeatMark([gym], gym, 'weekly', isEvent).filter((m) => m.deletedAt === null);
+    expect(out.every((m) => m.start === m.end)).toBe(true);
+    expect(out).toHaveLength(52);
+  });
+
+  it('todas as ocorrências compartilham o seriesId, e removeSeries apaga tudo', () => {
+    const weekend = mark('a', '2026-03-07', '2026-03-08');
+    const out = repeatMark([weekend], weekend, 'biweekly', isEvent);
+    const seriesId = out.find((m) => m.id === 'a')!.seriesId!;
+    expect(seriesId).toBeTruthy();
+    expect(out.filter((m) => m.deletedAt === null).every((m) => m.seriesId === seriesId)).toBe(true);
+    expect(removeSeries(out, seriesId).filter((m) => m.deletedAt === null)).toEqual([]);
+  });
+
+  it('apagar uma ocorrência não afeta as outras', () => {
+    const weekend = mark('a', '2026-03-07', '2026-03-08');
+    const all = repeatMark([weekend], weekend, 'biweekly', isEvent).filter((m) => m.deletedAt === null);
+    const victim = all[2]!;
+    const after = all.map((m) => (m.id === victim.id ? { ...m, deletedAt: 1 } : m));
+    expect(after.filter((m) => m.deletedAt === null)).toHaveLength(all.length - 1);
   });
 });

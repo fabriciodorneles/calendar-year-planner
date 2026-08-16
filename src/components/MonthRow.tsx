@@ -131,6 +131,7 @@ export const MonthRow = memo(function MonthRow({
           style={{ gridColumn: `${startDay} / span ${span}`, background: activity.color }}
           title={`${mark.title || activity.name}${mark.details ? ` — ${mark.details}` : ''}`}
         >
+          <span className="mark__emoji" aria-hidden="true">{activity.emoji}</span>
           <span className="mark__title">{mark.title || activity.name}</span>
         </div>
       ))}

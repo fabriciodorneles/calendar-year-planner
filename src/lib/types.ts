@@ -28,6 +28,8 @@ export type Mark = {
   title: string | null;
   /** Texto longo, só no modal do dia. */
   details: string | null;
+  /** Une as ocorrências geradas por uma repetição, para removê-las juntas. */
+  seriesId: string | null;
   updatedAt: number;
   deletedAt: number | null;
 };

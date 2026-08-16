@@ -72,6 +72,7 @@ export function applyEvent(
     end,
     title: input.title ?? null,
     details: null,
+    seriesId: null,
     updatedAt: now,
     deletedAt: null,
   };
@@ -105,6 +106,7 @@ export function applyRoutine(
       end: date,
       title: null,
       details: null,
+      seriesId: null,
       updatedAt: now,
       deletedAt: null,
     }));
@@ -150,3 +152,59 @@ export function segmentFor(
 }
 
 export const lengthInDays = (mark: Mark): number => daysBetween(mark.start, mark.end) + 1;
+
+/** Cadências oferecidas na UI. Materializadas, não guardadas como regra (DESIGN.md §5.4). */
+export const REPEAT_STEPS = { weekly: 7, biweekly: 14 } as const;
+export type RepeatKind = keyof typeof REPEAT_STEPS;
+
+/**
+ * Repete uma marcação até o fim do ano dela, deslocando o intervalo inteiro —
+ * um evento de sábado a domingo repetido de 14 em 14 dias continua caindo em
+ * sábado e domingo. Cada ocorrência é uma Mark de verdade, editável e apagável
+ * sozinha; o `seriesId` é o que permite remover todas de uma vez.
+ */
+export function repeatMark(
+  marks: Mark[],
+  source: Mark,
+  kind: RepeatKind,
+  isEvent: Scope,
+  now = Date.now(),
+): Mark[] {
+  const step = REPEAT_STEPS[kind];
+  const seriesId = source.seriesId ?? newId();
+  const lastDay = `${source.start.slice(0, 4)}-12-31`;
+
+  let out = marks.map((m) => (m.id === source.id ? { ...m, seriesId, updatedAt: now } : m));
+
+  for (let offset = step; ; offset += step) {
+    const start = addDays(source.start, offset);
+    if (compareISO(start, lastDay) > 0) break;
+    const end = addDays(source.end, offset);
+
+    if (isEvent(source)) {
+      out = clearRange(out, start, end, isEvent, now);
+      out.push({
+        ...source, id: newId(), start, end, seriesId, updatedAt: now, deletedAt: null,
+      });
+    } else {
+      // Rotina: uma Mark por dia, e dias que já a têm ficam como estão.
+      const taken = new Set(
+        out.filter((m) => isLive(m) && m.activityId === source.activityId).map((m) => m.start),
+      );
+      for (const date of eachDay(start, compareISO(end, lastDay) > 0 ? lastDay : end)) {
+        if (taken.has(date)) continue;
+        out.push({
+          ...source, id: newId(), start: date, end: date, seriesId, updatedAt: now, deletedAt: null,
+        });
+      }
+    }
+  }
+
+  return out;
+}
+
+export function removeSeries(marks: Mark[], seriesId: string, now = Date.now()): Mark[] {
+  return marks.map((m) =>
+    m.seriesId === seriesId ? { ...m, deletedAt: now, updatedAt: now } : m,
+  );
+}

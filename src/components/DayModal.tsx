@@ -1,7 +1,8 @@
 import { MONTH_LABELS, parseISO, weekdayOf, WEEKDAY_NAMES, type ISODate } from '../lib/dates';
 import { holidaysFor } from '../lib/holidays';
-import { eventAt, routinesAt } from '../lib/marks';
+import { eventAt, routinesAt, type RepeatKind } from '../lib/marks';
 import { isEventOf, useLiveActivities, useLiveMarks, usePlanner } from '../store/plannerStore';
+import type { Mark } from '../lib/types';
 
 /** Detalhes do dia: título e texto do evento, rotinas marcadas e o feriado. */
 export function DayModal({ date, onClose }: { date: ISODate; onClose: () => void }) {
@@ -9,6 +10,8 @@ export function DayModal({ date, onClose }: { date: ISODate; onClose: () => void
   const activities = useLiveActivities();
   const setMarkText = usePlanner((s) => s.setMarkText);
   const removeMark = usePlanner((s) => s.removeMark);
+  const repeatSeries = usePlanner((s) => s.repeatSeries);
+  const dropSeries = usePlanner((s) => s.dropSeries);
 
   const isEvent = isEventOf({ activities });
   const event = eventAt(marks, date, isEvent);
@@ -52,6 +55,7 @@ export function DayModal({ date, onClose }: { date: ISODate; onClose: () => void
               value={event.details ?? ''}
               onChange={(e) => setMarkText(event.id, { details: e.target.value || null })}
             />
+            <Repeat mark={event} onRepeat={repeatSeries} onDrop={dropSeries} />
             <button type="button" onClick={() => removeMark(event.id)}>Remover evento</button>
           </div>
         ) : (
@@ -71,6 +75,7 @@ export function DayModal({ date, onClose }: { date: ISODate; onClose: () => void
                       {activity.emoji}
                     </span>
                     {activity.name}
+                    <Repeat mark={routine} onRepeat={repeatSeries} onDrop={dropSeries} />
                     <button type="button" onClick={() => removeMark(routine.id)} title="Remover">×</button>
                   </li>
                 );
@@ -87,5 +92,39 @@ export function DayModal({ date, onClose }: { date: ISODate; onClose: () => void
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Repetição materializada: escolher a cadência já gera as ocorrências até o fim
+ * do ano (DESIGN.md §5.4). Depois de gerada, cada dia é editável sozinho e o
+ * botão de série apaga todas de uma vez.
+ */
+function Repeat({
+  mark,
+  onRepeat,
+  onDrop,
+}: {
+  mark: Mark;
+  onRepeat: (id: string, kind: RepeatKind) => void;
+  onDrop: (seriesId: string) => void;
+}) {
+  return (
+    <span className="repeat">
+      <select
+        value=""
+        aria-label="Repetir"
+        onChange={(e) => e.target.value && onRepeat(mark.id, e.target.value as RepeatKind)}
+      >
+        <option value="">Repetir…</option>
+        <option value="weekly">Toda semana</option>
+        <option value="biweekly">Semana sim, semana não</option>
+      </select>
+      {mark.seriesId ? (
+        <button type="button" title="Remover a série inteira" onClick={() => onDrop(mark.seriesId!)}>
+          ↻ apagar série
+        </button>
+      ) : null}
+    </span>
   );
 }

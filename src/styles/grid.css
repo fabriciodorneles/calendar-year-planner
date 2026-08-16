@@ -156,11 +156,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   margin: 1px;            /* cobre a célula inteira, rotinas por cima */
   padding: 0 3px;
+  font-size: clamp(5px, 1.15cqh, 10px);
   overflow: hidden;
   line-height: 1;
   color: #fff;
+}
+
+.mark__emoji {
+  flex: 0 0 auto;
+  font-size: 1em;      /* acompanha o título, nunca maior */
+  line-height: 1;
 }
 
 .mark__title {
@@ -332,12 +340,20 @@
 .emoji__scrim { position: fixed; inset: 0; z-index: 40; }
 .emoji__menu {
   position: absolute; top: calc(100% + 4px); left: 0; z-index: 41;
-  display: grid; grid-template-columns: repeat(6, 30px); gap: 2px;
+  display: grid; grid-template-columns: repeat(8, 30px); gap: 2px;
   padding: 6px; background: var(--paper); border: 1px solid var(--rule-strong);
   box-shadow: 0 6px 20px rgba(74, 66, 57, 0.18);
+  max-height: 240px; overflow-y: auto; overscroll-behavior: contain;
 }
 .emoji__option { border: none; height: 28px; font-size: 16px; background: none; }
 .emoji__option[aria-current='true'] { background: var(--cell-weekend); box-shadow: inset 0 -2px 0 var(--today); }
 
 /* Separador entre eventos e rotinas no dock */
 .dock__item[data-divider='true'] { border-top: 1px solid var(--rule); margin-top: 4px; padding-top: 4px; height: 40px; }
+
+/* Controle de repetição dentro do modal */
+.repeat { display: inline-flex; align-items: center; gap: 6px; }
+.repeat select { border: 1px solid var(--rule-strong); background: var(--cell); padding: 3px 4px; font-size: 12px; }
+.repeat button { padding: 2px 8px; font-size: 11px; }
+.modal__routines .repeat { margin-left: auto; }
+.modal__routines button { margin-left: 0; }

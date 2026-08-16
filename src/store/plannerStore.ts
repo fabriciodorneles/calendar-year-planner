@@ -2,13 +2,14 @@ import { useMemo } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import {
-  applyEvent, applyRoutine, clearRange, clearRoutine, eventAt, isLive, routinesAt,
+  applyEvent, applyRoutine, clearRange, clearRoutine, eventAt, isLive, removeSeries,
+  repeatMark, routinesAt, type RepeatKind,
 } from '../lib/marks';
 import { newId, type Activity, type Mark, type Mode } from '../lib/types';
 import type { ISODate } from '../lib/dates';
 import { defaultActivities } from './defaults';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 const HISTORY_LIMIT = 50;
 
 /** O que o undo/redo captura. A UI (ano, modo, pincel) fica de fora de propósito. */
@@ -33,6 +34,8 @@ type PlannerState = {
   toggleDay: (date: ISODate) => void;
   setMarkText: (markId: string, patch: { title?: string | null; details?: string | null }) => void;
   removeMark: (markId: string) => void;
+  repeatSeries: (markId: string, kind: RepeatKind) => void;
+  dropSeries: (seriesId: string) => void;
   setMarkActivity: (markId: string, activityId: string) => void;
 
   upsertActivity: (input: Partial<Activity> & { id?: string }) => void;
@@ -118,6 +121,15 @@ export const usePlanner = create<PlannerState>()(
               m.id === markId ? { ...m, ...patch, updatedAt: Date.now() } : m,
             ),
           }),
+
+        repeatSeries: (markId, kind) => {
+          const state = get();
+          const source = state.marks.find((m) => m.id === markId);
+          if (!source) return;
+          commit({ marks: repeatMark(state.marks, source, kind, isEventOf(state)) });
+        },
+
+        dropSeries: (seriesId) => commit({ marks: removeSeries(get().marks, seriesId) }),
 
         removeMark: (markId) => {
           const now = Date.now();
@@ -219,10 +231,11 @@ export const usePlanner = create<PlannerState>()(
        * pintava a célula inteira, que é o comportamento de evento — então as
        * atividades antigas viram eventos, preservando a aparência que o usuário
        * já tinha. Sem isso elas caem no ramo "não é evento" e viram rotinas.
+       * v2 → v3: `seriesId` (repetições) passa a existir, nulo no que já havia.
        */
       migrate: (persisted, version) => {
-        type LegacyMark = Omit<Mark, 'title' | 'details'> &
-          Partial<Pick<Mark, 'title' | 'details'>> & { note?: string | null };
+        type LegacyMark = Omit<Mark, 'title' | 'details' | 'seriesId'> &
+          Partial<Pick<Mark, 'title' | 'details' | 'seriesId'>> & { note?: string | null };
         const state = persisted as Omit<Partial<PlannerState>, 'activities' | 'marks'> & {
           activities?: Array<Omit<Activity, 'kind'> & Partial<Pick<Activity, 'kind'>>>;
           marks?: LegacyMark[];
@@ -237,6 +250,7 @@ export const usePlanner = create<PlannerState>()(
             ...m,
             title: m.title ?? null,
             details: m.details ?? note ?? null,
+            seriesId: m.seriesId ?? null,
           })),
         } as PlannerState;
       },

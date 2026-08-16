@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { compareISO, iso, MONTH_LABELS, todayISO, type ISODate } from '../lib/dates';
 import { holidaysFor } from '../lib/holidays';
 import { sortRange } from '../lib/marks';
@@ -22,6 +22,21 @@ export function CalendarGrid({ onOpenDay }: { onOpenDay: (date: ISODate) => void
   const activeId = usePlanner((s) => s.activeActivityId);
   const paint = usePlanner((s) => s.paint);
   const toggleDay = usePlanner((s) => s.toggleDay);
+
+  /**
+   * Um duplo clique começa com dois cliques simples. Sobre um dia já marcado
+   * isso rodava o toggle duas vezes — o primeiro recortava o dia da barra e o
+   * segundo criava uma marcação nova e vazia, destruindo título e série de quem
+   * só queria abrir os detalhes. Em dia ocupado o toggle espera para ver se vira
+   * duplo clique; em dia vazio continua instantâneo, para não atrasar a pintura.
+   */
+  const pendingToggle = useRef<number | null>(null);
+  const cancelPendingToggle = () => {
+    if (pendingToggle.current !== null) {
+      window.clearTimeout(pendingToggle.current);
+      pendingToggle.current = null;
+    }
+  };
 
   /** O arrasto vive numa ref: `pointerup` chega antes do React commitar o último
    *  `pointermove`, e ler o state ali encerrava a barra num dia defasado. */
@@ -64,6 +79,8 @@ export function CalendarGrid({ onOpenDay }: { onOpenDay: (date: ISODate) => void
     return { start, end, color: active.color, emoji: active.emoji, isEvent: active.kind === 'event' };
   }, [drag, active]);
 
+  useEffect(() => cancelPendingToggle, []);
+
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0 || !active) return;
     const date = dateUnder(event.clientX, event.clientY);
@@ -90,7 +107,17 @@ export function CalendarGrid({ onOpenDay }: { onOpenDay: (date: ISODate) => void
     gridRef.current?.releasePointerCapture(event.pointerId);
 
     if (!current.moved) {
-      toggleDay(current.anchor);
+      const date = current.anchor;
+      const occupied = marks.some((m) => m.start <= date && date <= m.end);
+      if (!occupied) {
+        toggleDay(date);
+        return;
+      }
+      cancelPendingToggle();
+      pendingToggle.current = window.setTimeout(() => {
+        pendingToggle.current = null;
+        toggleDay(date);
+      }, 220);
       return;
     }
     const [start, end] = sortRange(current.anchor, current.cursor);
@@ -108,6 +135,7 @@ export function CalendarGrid({ onOpenDay }: { onOpenDay: (date: ISODate) => void
       onPointerUp={onPointerUp}
       onPointerCancel={() => { dragRef.current = null; setDrag(null); }}
       onDoubleClick={(e) => {
+        cancelPendingToggle();
         const date = dateUnder(e.clientX, e.clientY);
         if (date) onOpenDay(date);
       }}
