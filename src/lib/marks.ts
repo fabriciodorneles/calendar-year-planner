@@ -1,4 +1,4 @@
-import { addDays, compareISO, daysBetween, type ISODate } from './dates';
+import { addDays, compareISO, daysBetween, eachDay, type ISODate } from './dates';
 import { newId, type Mark } from './types';
 
 export const isLive = <T extends { deletedAt: number | null }>(record: T): boolean =>
@@ -8,24 +8,32 @@ export function covers(mark: Mark, date: ISODate): boolean {
   return compareISO(mark.start, date) <= 0 && compareISO(date, mark.end) <= 0;
 }
 
-export function markAt(marks: Mark[], date: ISODate): Mark | undefined {
-  return marks.find((m) => isLive(m) && covers(m, date));
-}
-
 function intersects(mark: Mark, start: ISODate, end: ISODate): boolean {
   return compareISO(mark.start, end) <= 0 && compareISO(start, mark.end) <= 0;
 }
 
+export const sortRange = (a: ISODate, b: ISODate): [ISODate, ISODate] =>
+  compareISO(a, b) <= 0 ? [a, b] : [b, a];
+
+/** Predicado que restringe quais marcações uma operação enxerga. */
+export type Scope = (mark: Mark) => boolean;
+
 /**
- * Libera o intervalo [start, end], preservando o invariante "um dia = no máximo
- * uma Mark" (DESIGN.md §5.1). Marcações existentes são apagadas, truncadas ou
- * divididas conforme se sobrepõem ao intervalo.
+ * Libera o intervalo [start, end] entre as marcações dentro do `scope`,
+ * preservando "um evento por dia" (DESIGN.md §5.1). As de fora do escopo — as
+ * rotinas, quando o escopo são eventos — não são tocadas.
  */
-export function clearRange(marks: Mark[], start: ISODate, end: ISODate, now = Date.now()): Mark[] {
+export function clearRange(
+  marks: Mark[],
+  start: ISODate,
+  end: ISODate,
+  scope: Scope = () => true,
+  now = Date.now(),
+): Mark[] {
   const out: Mark[] = [];
 
   for (const mark of marks) {
-    if (!isLive(mark) || !intersects(mark, start, end)) {
+    if (!isLive(mark) || !scope(mark) || !intersects(mark, start, end)) {
       out.push(mark);
       continue;
     }
@@ -34,17 +42,13 @@ export function clearRange(marks: Mark[], start: ISODate, end: ISODate, now = Da
     const endsInside = compareISO(mark.end, end) <= 0;
 
     if (startsInside && endsInside) {
-      // Contida: some por inteiro.
       out.push({ ...mark, deletedAt: now, updatedAt: now });
     } else if (!startsInside && !endsInside) {
-      // Miolo: vira duas, herdando atividade e nota.
       out.push({ ...mark, end: addDays(start, -1), updatedAt: now });
       out.push({ ...mark, id: newId(), start: addDays(end, 1), updatedAt: now });
     } else if (startsInside) {
-      // Cobre o começo: empurra o início para depois do intervalo.
       out.push({ ...mark, start: addDays(end, 1), updatedAt: now });
     } else {
-      // Cobre o fim: puxa o fim para antes do intervalo.
       out.push({ ...mark, end: addDays(start, -1), updatedAt: now });
     }
   }
@@ -52,26 +56,80 @@ export function clearRange(marks: Mark[], start: ISODate, end: ISODate, now = Da
   return out;
 }
 
-/** Grava uma marcação, recortando o que estiver no caminho. */
-export function applyMark(
+/** Grava um evento, recortando os eventos que estiverem no caminho. */
+export function applyEvent(
   marks: Mark[],
-  input: { activityId: string; start: ISODate; end: ISODate; note?: string | null },
+  input: { activityId: string; start: ISODate; end: ISODate; title?: string | null },
+  isEvent: Scope,
   now = Date.now(),
 ): Mark[] {
-  const [start, end] =
-    compareISO(input.start, input.end) <= 0 ? [input.start, input.end] : [input.end, input.start];
+  const [start, end] = sortRange(input.start, input.end);
 
   const mark: Mark = {
     id: newId(),
     activityId: input.activityId,
     start,
     end,
-    note: input.note ?? null,
+    title: input.title ?? null,
+    details: null,
     updatedAt: now,
     deletedAt: null,
   };
 
-  return [...clearRange(marks, start, end, now), mark];
+  return [...clearRange(marks, start, end, isEvent, now), mark];
+}
+
+/**
+ * Rotinas são registradas dia a dia (decisão do usuário): cinco dias de academia
+ * são cinco ocorrências, não um bloco contínuo. Dias que já têm a rotina ficam
+ * como estão, então repintar por cima não duplica.
+ */
+export function applyRoutine(
+  marks: Mark[],
+  activityId: string,
+  start: ISODate,
+  end: ISODate,
+  now = Date.now(),
+): Mark[] {
+  const [from, to] = sortRange(start, end);
+  const existing = new Set(
+    marks.filter((m) => isLive(m) && m.activityId === activityId).map((m) => m.start),
+  );
+
+  const added = eachDay(from, to)
+    .filter((date) => !existing.has(date))
+    .map<Mark>((date) => ({
+      id: newId(),
+      activityId,
+      start: date,
+      end: date,
+      title: null,
+      details: null,
+      updatedAt: now,
+      deletedAt: null,
+    }));
+
+  return [...marks, ...added];
+}
+
+/** Remove uma rotina específica do intervalo, sem tocar em nada mais. */
+export function clearRoutine(
+  marks: Mark[],
+  activityId: string,
+  start: ISODate,
+  end: ISODate,
+  now = Date.now(),
+): Mark[] {
+  const [from, to] = sortRange(start, end);
+  return clearRange(marks, from, to, (m) => m.activityId === activityId, now);
+}
+
+export function eventAt(marks: Mark[], date: ISODate, isEvent: Scope): Mark | undefined {
+  return marks.find((m) => isLive(m) && isEvent(m) && covers(m, date));
+}
+
+export function routinesAt(marks: Mark[], date: ISODate, isEvent: Scope): Mark[] {
+  return marks.filter((m) => isLive(m) && !isEvent(m) && covers(m, date));
 }
 
 /** Fatia uma marcação nos segmentos que cabem dentro de um mês. */

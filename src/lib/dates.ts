@@ -64,6 +64,13 @@ export function todayISO(): ISODate {
   return iso(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
+/** Inicial do dia da semana, indexada por getUTCDay() (0 = domingo). */
+export const WEEKDAY_INITIALS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'] as const;
+
+export const WEEKDAY_NAMES = [
+  'domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado',
+] as const;
+
 export const MONTH_LABELS = [
   'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN',
   'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ',

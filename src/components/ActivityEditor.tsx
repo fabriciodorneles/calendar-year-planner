@@ -1,4 +1,5 @@
 import { useLiveActivities, usePlanner } from '../store/plannerStore';
+import { EmojiPicker } from './EmojiPicker';
 
 type Props = { onClose: () => void };
 
@@ -15,11 +16,10 @@ export function ActivityEditor({ onClose }: Props) {
 
         {activities.map((activity) => (
           <div className="modal__row" key={activity.id}>
-            <input
-              type="text"
+            <EmojiPicker
               value={activity.emoji}
-              aria-label={`Emoji de ${activity.name}`}
-              onChange={(e) => upsert({ id: activity.id, emoji: e.target.value })}
+              label={`Emoji de ${activity.name}`}
+              onPick={(emoji) => upsert({ id: activity.id, emoji })}
             />
             <input
               type="text"
@@ -27,6 +27,14 @@ export function ActivityEditor({ onClose }: Props) {
               aria-label="Nome"
               onChange={(e) => upsert({ id: activity.id, name: e.target.value })}
             />
+            <select
+              value={activity.kind}
+              aria-label={`Categoria de ${activity.name}`}
+              onChange={(e) => upsert({ id: activity.id, kind: e.target.value as 'event' | 'routine' })}
+            >
+              <option value="event">Evento</option>
+              <option value="routine">Rotina</option>
+            </select>
             <input
               type="number"
               min={0}
@@ -54,11 +62,20 @@ export function ActivityEditor({ onClose }: Props) {
         ))}
 
         <div className="modal__actions">
-          <button type="button" onClick={() => upsert({})}>+ Nova atividade</button>
+          <span>
+            <button type="button" onClick={() => upsert({ kind: 'event', name: 'Novo evento' })}>
+              + Evento
+            </button>
+            <button type="button" onClick={() => upsert({ kind: 'routine', name: 'Nova rotina' })}>
+              + Rotina
+            </button>
+          </span>
           <button type="button" onClick={onClose}>Fechar</button>
         </div>
 
         <p className="modal__hint">
+          <strong>Evento</strong> ocupa a célula inteira e vira barra em vários dias.
+          <strong> Rotina</strong> é um iconezinho na base do dia, marcado dia a dia.
           Remover uma atividade também esconde as marcações dela — <kbd>Cmd/Ctrl+Z</kbd> desfaz.
         </p>
       </div>

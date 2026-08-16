@@ -1,8 +1,14 @@
 import type { ISODate } from './dates';
 
+/** Duas categorias com comportamentos distintos no grid (DESIGN.md §5.3):
+ *  - event: ocupa a célula inteira, vira barra quando dura vários dias, um por dia
+ *  - routine: iconezinho na linha de baixo, vários por dia, sempre dia a dia */
+export type ActivityKind = 'event' | 'routine';
+
 /** Todo registro carrega id/updatedAt/deletedAt para o sync da fase 3 (ver DESIGN.md §5). */
 export type Activity = {
   id: string;
+  kind: ActivityKind;
   name: string;
   emoji: string;
   color: string;
@@ -18,7 +24,10 @@ export type Mark = {
   activityId: string;
   start: ISODate;
   end: ISODate;
-  note: string | null;
+  /** Rótulo mostrado na célula. Vazio = cai no nome da atividade. */
+  title: string | null;
+  /** Texto longo, só no modal do dia. */
+  details: string | null;
   updatedAt: number;
   deletedAt: number | null;
 };

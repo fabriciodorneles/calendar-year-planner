@@ -16,12 +16,15 @@ export function ActivityDock({ onManage }: Props) {
   return (
     <nav className="dock" aria-label="Atividades">
       {activities.map((activity, index) => {
+        const previous = activities[index - 1];
+        const startsRoutines = activity.kind === 'routine' && previous?.kind === 'event';
         const done = totals.get(activity.id) ?? 0;
         const pct = activity.goal ? Math.min(100, (done / activity.goal) * 100) : 0;
 
         return (
           <button
             key={activity.id}
+            data-divider={startsRoutines ? 'true' : undefined}
             type="button"
             className="dock__item"
             aria-pressed={activeId === activity.id}

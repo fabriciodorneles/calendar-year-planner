@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { applyMark, clearRange, isLive, markAt } from '../lib/marks';
+import {
+  applyEvent, applyRoutine, clearRange, clearRoutine, eventAt, isLive, routinesAt,
+} from '../lib/marks';
 import { newId, type Activity, type Mark, type Mode } from '../lib/types';
 import type { ISODate } from '../lib/dates';
 import { defaultActivities } from './defaults';
@@ -28,7 +30,9 @@ type PlannerState = {
 
   paint: (start: ISODate, end: ISODate) => void;
   erase: (start: ISODate, end: ISODate) => void;
-  setNote: (markId: string, note: string | null) => void;
+  toggleDay: (date: ISODate) => void;
+  setMarkText: (markId: string, patch: { title?: string | null; details?: string | null }) => void;
+  removeMark: (markId: string) => void;
   setMarkActivity: (markId: string, activityId: string) => void;
 
   upsertActivity: (input: Partial<Activity> & { id?: string }) => void;
@@ -67,19 +71,62 @@ export const usePlanner = create<PlannerState>()(
         setActiveActivity: (activeActivityId) => set({ activeActivityId }),
 
         paint: (start, end) => {
-          const activityId = get().activeActivityId;
-          if (!activityId) return;
-          commit({ marks: applyMark(get().marks, { activityId, start, end }) });
+          const state = get();
+          const activity = state.activities.find((a) => a.id === state.activeActivityId);
+          if (!activity) return;
+
+          commit({
+            marks:
+              activity.kind === 'event'
+                ? applyEvent(state.marks, { activityId: activity.id, start, end }, isEventOf(state))
+                : applyRoutine(state.marks, activity.id, start, end),
+          });
         },
 
         erase: (start, end) => commit({ marks: clearRange(get().marks, start, end) }),
 
-        setNote: (markId, note) =>
+        /** Clique repetido com o mesmo pincel: apaga em vez de repintar. */
+        toggleDay: (date) => {
+          const state = get();
+          const activity = state.activities.find((a) => a.id === state.activeActivityId);
+          if (!activity) return;
+
+          if (activity.kind === 'event') {
+            const current = eventAt(state.marks, date, isEventOf(state));
+            if (current?.activityId === activity.id) {
+              commit({ marks: clearRange(state.marks, date, date, (m) => m.id === current.id) });
+              return;
+            }
+            commit({
+              marks: applyEvent(state.marks, { activityId: activity.id, start: date, end: date }, isEventOf(state)),
+            });
+            return;
+          }
+
+          const already = routinesAt(state.marks, date, isEventOf(state))
+            .some((m) => m.activityId === activity.id);
+          commit({
+            marks: already
+              ? clearRoutine(state.marks, activity.id, date, date)
+              : applyRoutine(state.marks, activity.id, date, date),
+          });
+        },
+
+        setMarkText: (markId, patch) =>
           commit({
             marks: get().marks.map((m) =>
-              m.id === markId ? { ...m, note, updatedAt: Date.now() } : m,
+              m.id === markId ? { ...m, ...patch, updatedAt: Date.now() } : m,
             ),
           }),
+
+        removeMark: (markId) => {
+          const now = Date.now();
+          commit({
+            marks: get().marks.map((m) =>
+              m.id === markId ? { ...m, deletedAt: now, updatedAt: now } : m,
+            ),
+          });
+        },
 
         setMarkActivity: (markId, activityId) =>
           commit({
@@ -104,6 +151,7 @@ export const usePlanner = create<PlannerState>()(
           const live = get().activities.filter(isLive);
           const activity: Activity = {
             id: newId(),
+            kind: input.kind ?? 'routine',
             name: input.name ?? 'Nova atividade',
             emoji: input.emoji ?? '⭐',
             color: input.color ?? '#C1654F',
@@ -169,6 +217,14 @@ export const usePlanner = create<PlannerState>()(
   ),
 );
 
+/** Escopo "isto é um evento?" derivado do cadastro das atividades. */
+export function isEventOf(state: { activities: Activity[] }) {
+  const events = new Set(
+    state.activities.filter((a) => a.kind === 'event').map((a) => a.id),
+  );
+  return (mark: Mark) => events.has(mark.activityId);
+}
+
 export const liveActivities = (activities: Activity[]): Activity[] =>
   activities.filter(isLive).sort((a, b) => a.order - b.order);
 
@@ -189,4 +245,3 @@ export function useLiveMarks(): Mark[] {
   return useMemo(() => liveMarks(marks), [marks]);
 }
 
-export { markAt };

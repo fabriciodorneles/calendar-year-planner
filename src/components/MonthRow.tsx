@@ -1,35 +1,43 @@
 import { memo } from 'react';
-import { daysInMonth, iso, isWeekend, type ISODate } from '../lib/dates';
+import {
+  daysBetween, daysInMonth, iso, isWeekend, weekdayOf, WEEKDAY_INITIALS, type ISODate,
+} from '../lib/dates';
 import { segmentFor } from '../lib/marks';
-import { daysBetween } from '../lib/dates';
 import type { Activity, Mark } from '../lib/types';
+
+/** Acima disso a fila vira "+N": quatro quadradinhos é o que ainda se distingue
+ *  numa célula de ~50px (DESIGN.md §6.4). */
+const MAX_ROUTINE_ICONS = 4;
 
 type Props = {
   year: number;
   month: number;
-  marks: Mark[];
+  events: Mark[];
+  routinesByDay: Map<ISODate, Mark[]>;
   activities: Map<string, Activity>;
   holidays: Map<ISODate, string>;
   today: ISODate;
-  preview: { start: ISODate; end: ISODate; color: string; emoji: string } | null;
+  preview: { start: ISODate; end: ISODate; color: string; emoji: string; isEvent: boolean } | null;
 };
 
-/** Uma linha de mês. Memoizada: durante um arrasto só a linha tocada re-renderiza. */
 export const MonthRow = memo(function MonthRow({
-  year, month, marks, activities, holidays, today, preview,
+  year, month, events, routinesByDay, activities, holidays, today, preview,
 }: Props) {
   const total = daysInMonth(year, month);
   const monthStart = iso(year, month, 1);
   const monthEnd = iso(year, month, total);
 
-  const bars = marks.flatMap((mark) => {
+  const bars = events.flatMap((mark) => {
     const segment = segmentFor(mark, monthStart, monthEnd);
-    if (!segment) return [];
     const activity = activities.get(mark.activityId);
-    if (!activity) return [];
-    const startDay = daysBetween(monthStart, segment.start) + 1;
-    const span = daysBetween(segment.start, segment.end) + 1;
-    return [{ mark, segment, activity, startDay, span }];
+    if (!segment || !activity) return [];
+    return [{
+      mark,
+      segment,
+      activity,
+      startDay: daysBetween(monthStart, segment.start) + 1,
+      span: daysBetween(segment.start, segment.end) + 1,
+    }];
   });
 
   const previewSegment = preview && segmentFor(
@@ -45,25 +53,55 @@ export const MonthRow = memo(function MonthRow({
             <div key={day} className="day day--empty" style={{ gridColumn: day }} aria-hidden="true" />
           );
         }
+
         const date = iso(year, month, day);
         const holiday = holidays.get(date);
-        const classes = [
-          'day',
-          isWeekend(year, month, day) ? 'day--weekend' : '',
-          date === today ? 'day--today' : '',
-          holiday ? 'day--holiday' : '',
-        ].filter(Boolean).join(' ');
+        const routines = routinesByDay.get(date) ?? [];
+        const shown = routines.slice(0, MAX_ROUTINE_ICONS);
+        const overflow = routines.length - shown.length;
 
         return (
           <div
             key={day}
-            className={classes}
+            className={[
+              'day',
+              isWeekend(year, month, day) ? 'day--weekend' : '',
+              date === today ? 'day--today' : '',
+              preview && !preview.isEvent && preview.start <= date && date <= preview.end
+                ? 'day--brushing'
+                : '',
+            ].filter(Boolean).join(' ')}
             style={{ gridColumn: day }}
             data-date={date}
             role="gridcell"
             title={holiday ?? undefined}
           >
-            {day}
+            <span className="day__head">
+              <span className="day__num">{day}</span>
+              <span className="day__dow">{WEEKDAY_INITIALS[weekdayOf(year, month, day)]}</span>
+            </span>
+
+            {holiday ? <span className="day__holiday">{holiday}</span> : null}
+
+            {shown.length ? (
+              <span className="day__routines">
+                {shown.map((routine) => {
+                  const activity = activities.get(routine.activityId);
+                  if (!activity) return null;
+                  return (
+                    <span
+                      key={routine.id}
+                      className="routine"
+                      style={{ background: activity.color }}
+                      title={activity.name}
+                    >
+                      {activity.emoji}
+                    </span>
+                  );
+                })}
+                {overflow > 0 ? <span className="routine routine--more">+{overflow}</span> : null}
+              </span>
+            ) : null}
           </div>
         );
       })}
@@ -76,18 +114,15 @@ export const MonthRow = memo(function MonthRow({
             segment.openStart ? 'mark--open-start' : '',
             segment.openEnd ? 'mark--open-end' : '',
           ].filter(Boolean).join(' ')}
-          style={{
-            gridColumn: `${startDay} / span ${span}`,
-            background: activity.color,
-          }}
-          title={`${activity.name}${mark.note ? ` — ${mark.note}` : ''}`}
+          style={{ gridColumn: `${startDay} / span ${span}`, background: activity.color }}
+          title={`${mark.title || activity.name}${mark.details ? ` — ${mark.details}` : ''}`}
         >
-          <span aria-label={activity.name}>{activity.emoji}</span>
-          {mark.note ? <span className="mark__note" /> : null}
+          <span className="mark__emoji" aria-label={activity.name}>{activity.emoji}</span>
+          <span className="mark__title">{mark.title || activity.name}</span>
         </div>
       ))}
 
-      {previewSegment ? (
+      {previewSegment && preview!.isEvent ? (
         <div
           className="mark mark--preview"
           style={{
@@ -97,7 +132,7 @@ export const MonthRow = memo(function MonthRow({
             background: preview!.color,
           }}
         >
-          <span>{preview!.emoji}</span>
+          <span className="mark__emoji">{preview!.emoji}</span>
         </div>
       ) : null}
     </div>

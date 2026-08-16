@@ -1,4 +1,4 @@
-import { newId, type Activity } from '../lib/types';
+import { newId, type Activity, type ActivityKind } from '../lib/types';
 
 export const PALETTE = [
   '#C1654F', '#6B7F5C', '#4A6E7E', '#C79A45', '#7D5A6E', '#9C5B4A',
@@ -7,15 +7,23 @@ export const PALETTE = [
 
 /** Set inicial sugerido — renomeável, recolorível e deletável na UI. */
 export function defaultActivities(): Activity[] {
-  const seed: Array<[name: string, emoji: string, color: string, goal: number | null]> = [
-    ['Aventura', '🏔️', '#C1654F', 12],
-    ['Corrida', '🏃', '#6B7F5C', 100],
-    ['Academia', '🏋️', '#4A6E7E', 150],
-    ['Leitura', '📚', '#C79A45', null],
-    ['Viagem', '✈️', '#7D5A6E', null],
+  const seed: Array<[ActivityKind, string, string, string, number | null]> = [
+    ['event', 'Aventura', '🏔️', '#C1654F', 12],
+    ['event', 'Viagem', '✈️', '#7D5A6E', null],
+    ['event', 'Aniversário', '🎂', '#9C5B4A', null],
+    ['routine', 'Corrida', '🏃', '#6B7F5C', 100],
+    ['routine', 'Academia', '🏋️', '#4A6E7E', 150],
+    ['routine', 'Leitura', '📚', '#C79A45', null],
+    ['routine', 'Estudos', '📝', '#5F7470', null],
   ];
   const now = Date.now();
-  return seed.map(([name, emoji, color, goal], order) => ({
-    id: newId(), name, emoji, color, goal, order, updatedAt: now, deletedAt: null,
+  return seed.map(([kind, name, emoji, color, goal], order) => ({
+    id: newId(), kind, name, emoji, color, goal, order, updatedAt: now, deletedAt: null,
   }));
 }
+
+/** Emojis oferecidos no seletor do editor de atividades. */
+export const EMOJI_CHOICES = [
+  '🏔️', '✈️', '🎂', '🏖️', '🎉', '🎄', '🚗', '⛺', '🎸', '🍽️', '💼', '❤️',
+  '🏃', '🏋️', '📚', '📝', '🧘', '🚴', '🏊', '💊', '💧', '🌱', '🎧', '💤',
+] as const;

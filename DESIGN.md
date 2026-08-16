@@ -3,7 +3,7 @@
 > Versão digital do *Big A## Calendar* (Jesse Itzler): o ano inteiro em uma tela,
 > uma linha por mês, clicável, para marcar aventuras, hábitos e viagens com stickers.
 
-**Status:** fase 1 implementada · **Autor:** Fabrício · **Data:** 2026-08-16
+**Status:** fase 1 + categorias de atividade implementadas · **Autor:** Fabrício · **Data:** 2026-08-16
 
 ---
 
@@ -42,10 +42,10 @@ Tudo abaixo foi decidido, não é sugestão. Mudanças exigem editar este doc.
 |---|---------|---------|
 | D1 | Persistência | `localStorage` na fase 1; backend na fase 2. Modelo de dados já preparado para sync. |
 | D2 | Escopo temporal | Multi-ano navegável. Atividades compartilhadas entre anos. |
-| D3 | Aparência do sticker | Emoji + cor de fundo na célula. |
+| D3 | Aparência do sticker | Emoji + título truncado sobre a cor de fundo. |
 | D4 | Atividades de vários dias | Arrastar pelo grid → barra contínua única. |
 | D5 | Fluxo de marcação | Dois modos com toggle: **Pincel** e **Inspeção** (popover). |
-| D6 | Stickers por dia | **Um só.** Marcar de novo substitui. |
+| D6 | Stickers por dia | **Um evento por dia** (marcar de novo substitui); rotinas empilham, até 4 ícones + `+N`. |
 | D7 | Mobile | Desktop-first. Celular: somente leitura, com scroll horizontal. |
 | D8 | Metas | Meta anual opcional por atividade + contador do realizado. |
 | D9 | Seletor de pincel | Dock lateral fino que auto-colapsa e expande **por cima** do grid. |
@@ -56,6 +56,11 @@ Tudo abaixo foi decidido, não é sugestão. Mudanças exigem editar este doc.
 | D14 | Cadastro de atividades | CRUD completo na UI, com set inicial sugerido. |
 | D15 | Estética | Fiel à foto: bege/kraft, off-white, tipografia condensada em caixa alta. |
 | D16 | Export | Export/import JSON dos dados. Só isso na v1. |
+| D17 | Categorias | Duas: **evento** (célula inteira, vira barra) e **rotina** (ícone na base, dia a dia). |
+| D18 | Detalhes do dia | Duplo clique abre modal com título, detalhes, rotinas e feriado. |
+| D19 | Dia da semana | Inicial única ao lado do número (`12 S`). |
+| D20 | Nome do feriado | Texto truncado na célula, completo no hover e no modal. |
+| D21 | Emoji da atividade | Seletor em grade no editor, com 24 opções. |
 
 ---
 
@@ -86,8 +91,11 @@ merge last-write-wins sem redesenhar nada.
 ```ts
 type ISODate = string;  // 'YYYY-MM-DD', sempre UTC
 
+type ActivityKind = 'event' | 'routine';
+
 type Activity = {
   id: string;
+  kind: ActivityKind;    // define todo o comportamento no grid (§5.3)
   name: string;          // 'Aventura'
   emoji: string;         // '🏔️'
   color: string;         // hex do fundo da célula
@@ -103,7 +111,8 @@ type Mark = {
   activityId: string;
   start: ISODate;
   end: ISODate;          // inclusivo
-  note: string | null;   // 'Serra do Cipó'
+  title: string | null;  // 'Serra do Cipó' — mostrado na célula
+  details: string | null;// texto longo, só no modal
   updatedAt: number;
   deletedAt: number | null;
 };
@@ -118,11 +127,12 @@ type PlannerState = {
 
 ### 5.1 Invariante central
 
-> **Um dia pertence a no máximo uma `Mark`.** (consequência de D6)
+> **Um dia pertence a no máximo um evento.** (consequência de D6)
 
-Isso vale para o dataset inteiro, não por atividade. É o que mantém a leitura limpa e o
-que torna a renderização trivial — mas exige uma regra de resolução explícita ao pintar
-por cima de algo existente:
+O invariante vale **dentro da categoria evento**, não no dataset inteiro: rotinas convivem
+livremente entre si e com o evento do dia. Por isso o recorte recebe um `Scope` — um
+predicado que decide quais marcações a operação enxerga — e pintar um evento nunca apaga
+uma rotina. A regra de resolução ao pintar por cima de outro evento:
 
 Ao gravar uma nova `Mark` no intervalo `[s, e]`, para cada `Mark` existente que intersecta:
 
@@ -135,13 +145,27 @@ Ao gravar uma nova `Mark` no intervalo `[s, e]`, para cada `Mark` existente que 
 
 Esse recorte é a peça mais fácil de errar do app e é **o principal alvo dos testes unitários**.
 
-### 5.2 Notas e o caso "nota sem sticker"
+### 5.2 Título e detalhes
 
-A `note` pertence à **Mark**, não ao dia: uma viagem de 5 dias tem uma nota, não cinco.
+`title` e `details` pertencem à **Mark**, não ao dia: uma viagem de 5 dias tem um título, não
+cinco. O `title` aparece na célula (truncado) e cai no nome da atividade quando vazio;
+`details` só no modal.
 
-Consequência aceita: não existe nota em dia sem atividade. Se eu quiser anotar um dia solto,
-crio uma atividade `Nota 📝` e uso ela. Se na prática isso incomodar, a saída é uma entidade
-`DayNote` separada — não vamos antecipar.
+Consequência aceita: não existe anotação em dia sem atividade. Se incomodar, a saída é uma
+entidade `DayNote` separada — não vamos antecipar.
+
+### 5.3 Eventos e rotinas
+
+| | Evento | Rotina |
+|---|---|---|
+| Exemplos | viagem, aventura, aniversário | academia, estudos, leitura |
+| Na célula | ocupa tudo: cor + emoji + título | quadradinho na linha de baixo |
+| Vários dias | barra contínua (uma Mark) | uma Mark por dia |
+| Por dia | no máximo um | vários, 4 visíveis + `+N` |
+
+Rotina arrastada grava **um registro por dia**: cinco dias de academia são cinco ocorrências,
+não um bloco de cinco dias. Assim apagar um dia isolado não parte nada ao meio, e o contador
+de metas conta ocorrências naturalmente. O arrasto continua servindo de pintura em lote.
 
 ### 5.3 Barras que atravessam meses
 
@@ -206,12 +230,11 @@ de título** (§2).
 O arrasto usa Pointer Events (funciona com mouse e trackpad) e captura o ponteiro, então
 sair do grid no meio do gesto não corrompe a seleção.
 
-### 7.2 Modo Inspeção — tecla `I`
+### 7.2 Modal do dia — duplo clique
 
-Clique abre um popover ancorado no dia, com: atividade (trocável), intervalo, campo de nota
-e botão de excluir. É o modo para detalhar, não para marcar em massa.
-
-O toggle entre modos é um ícone discreto no canto e as teclas `P`/`I`.
+Duplo clique em qualquer dia abre o modal com: o evento (título, detalhes, intervalo, remover),
+a lista de rotinas marcadas e o feriado, se houver. Duplo clique foi escolhido em vez de clique
+simples para não competir com a pintura, que é a ação dominante.
 
 ### 7.3 Teclado
 
@@ -221,7 +244,7 @@ O toggle entre modos é um ícone discreto no canto e as teclas `P`/`I`.
 | `F` | tela cheia (Fullscreen API) |
 | `←` `→` | ano anterior / próximo |
 | `Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z` | desfazer / refazer |
-| `Esc` | fecha o editor de atividades |
+| `Esc` | fecha o modal do dia ou o editor (funciona também com o cursor num campo) |
 | `P` / `I` | alterna modo Pincel / Inspeção — *fase 2* |
 | `S` | abre/fecha o painel de estatísticas — *fase 2* |
 
@@ -366,8 +389,9 @@ a página e está tudo lá. ✅ **Entregue.**
 > estatísticas completo (§7.6) continua na fase 2.
 
 ### Fase 2 — Refinamento
-Modo Inspeção e popover · notas · painel de estatísticas com metas e sequências · leitura no
-celular · testes de `marks.ts` e `holidays.ts` completos.
+✅ Modal do dia com título e detalhes · ✅ categorias evento/rotina · ✅ dia da semana ·
+✅ nome do feriado na célula · ✅ seletor de emoji · ✅ leitura no celular.
+Pendente: painel de estatísticas com metas e sequências, e o modo Inspeção com popover.
 
 ### Fase 3 — Backend (só se a fase 1 provar o uso)
 API Node (Fastify) + SQLite/Postgres · auth de usuário único · sync last-write-wins ·
@@ -386,7 +410,7 @@ semanalmente" · heatmap de consistência.
 | Perder dados ao limpar o browser | Export JSON + lembrete de backup; fase 3 resolve de vez. |
 | Recorte de sobreposição (§5.1) com bug destrutivo | Testes unitários exaustivos + undo/redo. |
 | Grid ilegível em telas pequenas de desktop | Unidades de container; piso testado em 1280×720. |
-| "Um sticker por dia" (D6) apertar na prática | Modelo suporta relaxar a invariante depois; a view precisaria de faixas na célula. |
+| Célula ficar poluída (número, semana, feriado, evento, rotinas) | Verificado a 1280×720 com célula de 37×54: tudo ainda legível. Abaixo disso o feriado é o primeiro a cortar. |
 | Emojis renderizam diferente por SO | Aceito. A cor de fundo carrega o significado; o emoji reforça. |
 
 ---

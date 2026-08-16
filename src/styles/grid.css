@@ -50,13 +50,55 @@
   border-right: 1px solid var(--rule);
   background: var(--cell);
   position: relative;
-  padding: 2px 0 0 3px;
+  padding: 2px 2px 0 3px;
   font-size: clamp(6px, 1.5cqh, 13px);
   font-weight: 400;
   color: var(--label);
   line-height: 1;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
+
+.day__head { display: flex; align-items: baseline; gap: 2px; }
+.day__num { font-variant-numeric: tabular-nums; }
+/* Inicial do dia da semana: mais apagada que o número, para não competir. */
+.day__dow { opacity: 0.55; font-size: 0.85em; }
+
+.day__holiday {
+  font-size: 0.82em;
+  line-height: 1.05;
+  color: var(--today);
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Fila de rotinas, ancorada na base da célula. */
+.day__routines {
+  margin-top: auto;
+  display: flex;
+  gap: 1px;
+  padding-bottom: 2px;
+  z-index: 3;
+}
+
+.routine {
+  flex: 0 0 auto;
+  width: clamp(6px, 1.6cqh, 14px);
+  height: clamp(6px, 1.6cqh, 14px);
+  display: grid;
+  place-items: center;
+  font-size: clamp(4px, 1.1cqh, 10px);
+  line-height: 1;
+  overflow: hidden;
+}
+
+.routine--more { background: var(--rule-strong); color: var(--ink); font-size: 0.6em; }
+
+.day--brushing { outline: 1px dashed var(--today); outline-offset: -2px; }
 
 .day--weekend { background: var(--cell-weekend); }
 .day--empty { background: transparent; border-right-color: transparent; }
@@ -92,23 +134,30 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 1px;
+  gap: 2px;
+  margin: 1px 1px 12px;   /* deixa a base livre para a fila de rotinas */
+  padding: 0 2px;
   overflow: hidden;
-  font-size: clamp(8px, 3.2cqh, 26px);
+  font-size: clamp(8px, 2.6cqh, 22px);
   line-height: 1;
+  color: #fff;
+}
+
+.mark__emoji { flex: 0 0 auto; }
+
+/* Some quando não há largura suficiente: numa célula única sobra pouco. */
+.mark__title {
+  font-size: clamp(5px, 1.3cqh, 12px);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 .mark--open-start { margin-left: 0; }
 .mark--open-end { margin-right: 0; }
-
-.mark__note {
-  position: absolute;
-  top: 0;
-  right: 0;
-  border-style: solid;
-  border-width: 0 7px 7px 0;
-  border-color: transparent rgba(255, 255, 255, 0.85) transparent transparent;
-}
 
 .mark--preview { opacity: 0.45; }
 
@@ -241,3 +290,37 @@
   .dock { display: none; }
   .mobile-note { display: block; }
 }
+
+/* ---- Modal do dia ---- */
+.modal__sub { font-size: 12px; color: var(--label); margin-left: 8px; text-transform: none; letter-spacing: 0; }
+.modal__holiday { margin: 0 0 12px; font-size: 13px; color: var(--today); }
+.modal__block { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
+.modal__label { display: flex; align-items: center; gap: 8px; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--label); }
+.modal__range { font-style: normal; font-size: 11px; color: var(--label); }
+.modal__block input[type='text'], .modal__block textarea {
+  border: 1px solid var(--rule-strong); background: var(--cell); padding: 6px 8px; font-family: inherit; resize: vertical;
+}
+.modal__block > button { align-self: flex-start; padding: 4px 10px; font-size: 12px; }
+.modal__routines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.modal__routines li { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.modal__routines .routine { width: 20px; height: 20px; font-size: 12px; }
+.modal__routines button { margin-left: auto; border: none; padding: 0 6px; }
+.modal__row select { border: 1px solid var(--rule-strong); background: var(--cell); padding: 5px 4px; }
+.modal__row { grid-template-columns: 46px 1fr 84px 70px 44px 32px; }
+.modal__actions span { display: flex; gap: 8px; }
+
+/* ---- Seletor de emoji ---- */
+.emoji { position: relative; }
+.emoji__trigger { width: 100%; height: 30px; font-size: 16px; background: var(--cell); }
+.emoji__scrim { position: fixed; inset: 0; z-index: 40; }
+.emoji__menu {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 41;
+  display: grid; grid-template-columns: repeat(6, 30px); gap: 2px;
+  padding: 6px; background: var(--paper); border: 1px solid var(--rule-strong);
+  box-shadow: 0 6px 20px rgba(74, 66, 57, 0.18);
+}
+.emoji__option { border: none; height: 28px; font-size: 16px; background: none; }
+.emoji__option[aria-current='true'] { background: var(--cell-weekend); box-shadow: inset 0 -2px 0 var(--today); }
+
+/* Separador entre eventos e rotinas no dock */
+.dock__item[data-divider='true'] { border-top: 1px solid var(--rule); margin-top: 4px; padding-top: 4px; height: 40px; }
