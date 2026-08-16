@@ -357,3 +357,13 @@
 .repeat button { padding: 2px 8px; font-size: 11px; }
 .modal__routines .repeat { margin-left: auto; }
 .modal__routines button { margin-left: 0; }
+
+/* Indicador de sincronização na toolbar */
+.sync { padding: 2px 8px; font-size: 13px; }
+.sync--idle { color: #4F6D3A; }
+.sync--syncing { color: var(--today); }
+.sync--error { color: #B23A2F; }
+.sync--signed-out { color: var(--label); }
+.modal__block input[type='email'] {
+  border: 1px solid var(--rule-strong); background: var(--cell); padding: 6px 8px; width: 100%;
+}

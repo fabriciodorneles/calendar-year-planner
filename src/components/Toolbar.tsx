@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { downloadBackup, parseBackup } from '../lib/io';
 import { SCHEMA_VERSION, usePlanner } from '../store/plannerStore';
+import { SyncPanel } from './SyncPanel';
 
 export function Toolbar() {
   const year = usePlanner((s) => s.currentYear);
@@ -53,6 +54,8 @@ export function Toolbar() {
       >
         ⛶
       </button>
+
+      <SyncPanel />
 
       <button type="button" onClick={exportNow} title="Exportar JSON">↓</button>
       <button type="button" onClick={() => fileRef.current?.click()} title="Importar JSON">↑</button>

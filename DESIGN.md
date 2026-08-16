@@ -3,7 +3,7 @@
 > Versão digital do *Big A## Calendar* (Jesse Itzler): o ano inteiro em uma tela,
 > uma linha por mês, clicável, para marcar aventuras, hábitos e viagens com stickers.
 
-**Status:** fase 1 + categorias de atividade implementadas · **Autor:** Fabrício · **Data:** 2026-08-16
+**Status:** fases 1 e 2 implementadas; sincronização (fase 3) no ar · **Autor:** Fabrício · **Data:** 2026-08-16
 
 ---
 
@@ -40,7 +40,7 @@ Tudo abaixo foi decidido, não é sugestão. Mudanças exigem editar este doc.
 
 | # | Decisão | Escolha |
 |---|---------|---------|
-| D1 | Persistência | `localStorage` na fase 1; backend na fase 2. Modelo de dados já preparado para sync. |
+| D1 | Persistência | `localStorage` como fonte local + **Supabase** (Postgres) sincronizando em segundo plano. |
 | D2 | Escopo temporal | Multi-ano navegável. Atividades compartilhadas entre anos. |
 | D3 | Aparência do evento | Emoji pequeno (mesmo tamanho da fonte) + título, sobre a cor cheia. |
 | D4 | Atividades de vários dias | Arrastar pelo grid → barra contínua única. |
@@ -396,8 +396,24 @@ apareciam como rotinas, embora o editor mostrasse "Evento" (um `<select>` sem va
 primeira opção). Foi assim que o bug apareceu em produção. Export/import JSON (D16) é o backup enquanto não há servidor — e a
 UI lembra disso se nunca houve export e existem mais de 50 marks.
 
-**Fase 2** troca só `lib/storage.ts` por um adaptador HTTP: como todo registro já tem `id`,
-`updatedAt` e `deletedAt`, o merge é last-write-wins por registro, sem redesenho do modelo.
+**Sincronização (implementada).** O `localStorage` continua sendo a fonte local — o app abre e
+funciona sem rede. Por cima dele, `store/sync.ts` conversa com o Supabase:
+
+- **pull incremental:** `select * where updated_at > cursor`, só o que mudou desde a última visita;
+- **merge:** last-write-wins por registro (`mergeById`), o lado com `updatedAt` maior vence;
+- **push:** upsert apenas dos registros tocados depois do cursor, atividades antes das marcações
+  (a marcação referencia a atividade);
+- **quando:** ao entrar, ao voltar o foco da janela, e 2,5s depois de cada alteração.
+
+O cursor só avança **depois** do push: se ele falhar, a tentativa seguinte reenvia o mesmo
+intervalo em vez de deixar registros para trás.
+
+Como cada dia é um registro separado, edições em dispositivos diferentes se somam; só colidem de
+verdade se forem no mesmo dia. O empate no `updatedAt` mantém o local, evitando escrita à toa.
+**Limitação assumida:** LWW depende dos relógios dos aparelhos estarem razoavelmente certos.
+
+O `id` de cada registro precisa ser um UUID de verdade — as colunas são `uuid` no Postgres. O
+gerador tem fallback próprio de UUID v4 para o caso de `crypto.randomUUID` não existir.
 
 ### 9.5 Acessibilidade
 
@@ -435,9 +451,12 @@ a página e está tudo lá. ✅ **Entregue.**
 ✅ nome do feriado na célula · ✅ seletor de emoji · ✅ leitura no celular.
 Pendente: painel de estatísticas com metas e sequências, e o modo Inspeção com popover.
 
-### Fase 3 — Backend (só se a fase 1 provar o uso)
-API Node (Fastify) + SQLite/Postgres · auth de usuário único · sync last-write-wins ·
-adaptador HTTP substituindo o localStorage.
+### Fase 3 — Sincronização ✅
+Supabase (Postgres + auth por magic link) · RLS por usuário · pull/push incremental com merge
+last-write-wins · offline-first preservado.
+
+**Pendências conhecidas:** os índices `activities_user_idx` e `marks_user_start_idx` ainda não
+foram criados (irrelevante no volume atual, ~400 linhas); e a `service_role` nunca entra no front.
 
 ### Backlog (não priorizado)
 Export PNG · CSS de impressão A3/A2 · temas · aniversários recorrentes · atalho de "repetir
@@ -449,7 +468,8 @@ semanalmente" · heatmap de consistência.
 
 | Risco | Mitigação |
 |-------|-----------|
-| Perder dados ao limpar o browser | Export JSON + lembrete de backup; fase 3 resolve de vez. |
+| Perder dados ao limpar o browser | Resolvido pelo sync: os dados vivem no Postgres. O export JSON continua como backup extra. |
+| Relógio errado num aparelho | LWW usa `updatedAt` local; um relógio muito adiantado sempre venceria. Aceito para uso pessoal. |
 | Recorte de sobreposição (§5.1) com bug destrutivo | Testes unitários exaustivos + undo/redo. |
 | Grid ilegível em telas pequenas de desktop | Unidades de container; piso testado em 1280×720. |
 | Célula ficar poluída (número, semana, feriado, evento, rotinas) | Verificado a 1280×720 com célula de 37×54: tudo ainda legível. Abaixo disso o feriado é o primeiro a cortar. |

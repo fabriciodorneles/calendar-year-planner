@@ -33,8 +33,17 @@ do mês. Clicar de novo no mesmo dia com a mesma atividade apaga.
 | `Cmd/Ctrl+Z` · `Cmd/Ctrl+Shift+Z` | desfazer · refazer |
 | `Esc` | fecha o editor de atividades |
 
-Os dados ficam no `localStorage` do browser. Use o botão `↓` da barra superior para exportar
-um JSON de backup e `↑` para importar — **é a única cópia de segurança até o backend da fase 3**.
+Os dados ficam no `localStorage` e, se você entrar com e-mail no botão de sincronização (`●` na
+barra superior), sincronizam com o Supabase — o mesmo calendário em qualquer aparelho. O app
+continua funcionando sem rede; o sync acontece em segundo plano quando ela volta.
+
+O botão `↓` exporta um JSON de backup e `↑` importa.
+
+### Configuração do Supabase
+
+A URL do projeto e a *publishable key* estão em `src/lib/supabase.ts`. Essa chave é pública por
+design — quem protege os dados são as policies de RLS ("cada um só enxerga as próprias linhas").
+Para apontar para outro projeto, use `VITE_SUPABASE_URL` e `VITE_SUPABASE_KEY`.
 
 ## Estado
 
@@ -42,5 +51,6 @@ Fase 1 do DESIGN.md entregue: grid do ano, pintura por clique e arrasto, barras 
 CRUD de atividades com metas, undo/redo, feriados nacionais, export/import, tela cheia e
 deploy automático.
 
-Ainda não implementado (fases 2 e 3): modo de inspeção com popover, notas por marcação,
-painel de estatísticas, e sincronização com backend.
+Sincronização entre dispositivos no ar (Supabase, login por link no e-mail).
+
+Ainda não implementado: painel de estatísticas com metas e sequências.
