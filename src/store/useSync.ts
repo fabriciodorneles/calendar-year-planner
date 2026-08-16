@@ -116,7 +116,11 @@ export function useSync() {
     signIn: (email: string) =>
       supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: window.location.href },
+        // Sem hash nem query: `location.href` carregaria o `#` de um login
+        // anterior e o retorno viria com `##access_token=...`.
+        options: {
+          emailRedirectTo: `${window.location.origin}${window.location.pathname}`,
+        },
       }),
     signOut: async () => {
       await supabase.auth.signOut();
