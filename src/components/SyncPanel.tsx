@@ -13,7 +13,7 @@ const DOT: Record<SyncStatus, string> = {
 };
 
 export function SyncPanel() {
-  const { session, status, error, signIn, signOut } = useSync();
+  const { session, status, error, signIn, signInWith, signOut } = useSync();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
@@ -68,9 +68,20 @@ export function SyncPanel() {
             ) : (
               <>
                 <p className="modal__hint">
-                  Entre com seu e-mail para usar o mesmo calendário em outros aparelhos.
-                  Sem senha: chega um link de acesso.
+                  Entre uma vez neste aparelho para usar o mesmo calendário em todos eles.
+                  Depois disso a sessão fica salva e a sincronização é automática.
                 </p>
+
+                <div className="modal__oauth">
+                  <button type="button" onClick={() => void signInWith('google')}>
+                    Entrar com Google
+                  </button>
+                  <button type="button" onClick={() => void signInWith('github')}>
+                    Entrar com GitHub
+                  </button>
+                </div>
+
+                <p className="modal__hint">Ou por link no e-mail:</p>
                 <div className="modal__block">
                   <input
                     type="email"

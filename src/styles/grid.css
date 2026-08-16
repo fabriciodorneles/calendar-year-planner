@@ -367,3 +367,6 @@
 .modal__block input[type='email'] {
   border: 1px solid var(--rule-strong); background: var(--cell); padding: 6px 8px; width: 100%;
 }
+
+.modal__oauth { display: flex; gap: 8px; margin: 12px 0; }
+.modal__oauth button { flex: 1; padding: 8px 10px; font-size: 13px; }

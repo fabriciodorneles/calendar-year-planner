@@ -122,6 +122,12 @@ export function useSync() {
           emailRedirectTo: `${window.location.origin}${window.location.pathname}`,
         },
       }),
+    /** OAuth: um clique, sem e-mail. Mesmo destino de retorno do magic link. */
+    signInWith: (provider: 'google' | 'github') =>
+      supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: `${window.location.origin}${window.location.pathname}` },
+      }),
     signOut: async () => {
       await supabase.auth.signOut();
       localStorage.removeItem(CURSOR_KEY);
