@@ -61,29 +61,57 @@
   gap: 1px;
 }
 
-.day__head { display: flex; align-items: baseline; gap: 2px; }
-.day__num { font-variant-numeric: tabular-nums; }
-/* Inicial do dia da semana: mais apagada que o número, para não competir. */
-.day__dow { opacity: 0.55; font-size: 0.85em; }
+/* Cabeçalho e rodapé ficam ACIMA da pintura do evento (z-index 3 > .mark),
+   para o dia, a semana, o feriado e as rotinas nunca sumirem sob a cor. */
+.day__head {
+  display: flex;
+  align-items: center;   /* centro do dia da semana alinhado ao centro do número */
+  gap: 3px;
+  position: relative;
+  z-index: 3;
+}
 
+.day__num { font-variant-numeric: tabular-nums; font-weight: 700; }
+.day__dow { font-size: 0.78em; opacity: 0.6; letter-spacing: 0.02em; }
+
+.day__foot {
+  margin-top: auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2px;
+  min-width: 0;
+  position: relative;
+  z-index: 3;
+  padding-bottom: 1px;
+}
+
+/* Feriado: bolinha + nome, na última linha da célula. O nome encolhe e some
+   quando as rotinas tomam a largura, mas a bolinha nunca — ela é o sinal de que
+   ali tem feriado, e o nome completo continua no hover e no modal. */
 .day__holiday {
-  font-size: 0.82em;
-  line-height: 1.05;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 1 auto;
+  min-width: 4px;
+  font-size: clamp(5px, 1.3cqh, 11px);
+  line-height: 1.1;
   color: var(--today);
-  opacity: 0.8;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Fila de rotinas, ancorada na base da célula. */
-.day__routines {
-  margin-top: auto;
-  display: flex;
-  gap: 1px;
-  padding-bottom: 2px;
-  z-index: 3;
+.day__dot {
+  flex: 0 0 auto;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--today);
 }
+
+.day__routines { display: flex; gap: 1px; flex: 0 0 auto; }
 
 .routine {
   flex: 0 0 auto;
@@ -94,9 +122,16 @@
   font-size: clamp(4px, 1.1cqh, 10px);
   line-height: 1;
   overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5);
 }
 
 .routine--more { background: var(--rule-strong); color: var(--ink); font-size: 0.6em; }
+
+/* Sobre a cor cheia do evento o bege some: texto vira branco. */
+.day--painted .day__num,
+.day--painted .day__dow { color: #fff; opacity: 0.95; }
+.day--painted .day__holiday { color: rgba(255, 255, 255, 0.9); }
+.day--painted .day__dot { background: rgba(255, 255, 255, 0.9); }
 
 .day--brushing { outline: 1px dashed var(--today); outline-offset: -2px; }
 
@@ -112,19 +147,6 @@
   z-index: 3;
 }
 
-/* Feriado: contexto, nunca sticker. */
-.day--holiday::before {
-  content: '';
-  position: absolute;
-  left: 3px;
-  bottom: 3px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--today);
-  opacity: 0.55;
-}
-
 /* Barras de marcação, por cima das células mas transparentes ao ponteiro:
    o alvo do clique/arrasto é sempre a célula de baixo. */
 .mark {
@@ -134,20 +156,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  margin: 1px 1px 12px;   /* deixa a base livre para a fila de rotinas */
-  padding: 0 2px;
+  margin: 1px;            /* cobre a célula inteira, rotinas por cima */
+  padding: 0 3px;
   overflow: hidden;
-  font-size: clamp(8px, 2.6cqh, 22px);
   line-height: 1;
   color: #fff;
 }
 
-.mark__emoji { flex: 0 0 auto; }
-
-/* Some quando não há largura suficiente: numa célula única sobra pouco. */
 .mark__title {
-  font-size: clamp(5px, 1.3cqh, 12px);
+  font-size: clamp(5px, 1.15cqh, 10px);
   font-weight: 400;
   letter-spacing: 0.01em;
   white-space: nowrap;

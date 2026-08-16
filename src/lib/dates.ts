@@ -64,8 +64,8 @@ export function todayISO(): ISODate {
   return iso(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
-/** Inicial do dia da semana, indexada por getUTCDay() (0 = domingo). */
-export const WEEKDAY_INITIALS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'] as const;
+/** Abreviação de 3 letras do dia da semana, indexada por getUTCDay() (0 = domingo). */
+export const WEEKDAY_SHORT = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'] as const;
 
 export const WEEKDAY_NAMES = [
   'domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado',

@@ -42,7 +42,7 @@ Tudo abaixo foi decidido, não é sugestão. Mudanças exigem editar este doc.
 |---|---------|---------|
 | D1 | Persistência | `localStorage` na fase 1; backend na fase 2. Modelo de dados já preparado para sync. |
 | D2 | Escopo temporal | Multi-ano navegável. Atividades compartilhadas entre anos. |
-| D3 | Aparência do sticker | Emoji + título truncado sobre a cor de fundo. |
+| D3 | Aparência do evento | Só o título, em fonte pequena, sobre a cor cheia — sem emoji na barra. |
 | D4 | Atividades de vários dias | Arrastar pelo grid → barra contínua única. |
 | D5 | Fluxo de marcação | Dois modos com toggle: **Pincel** e **Inspeção** (popover). |
 | D6 | Stickers por dia | **Um evento por dia** (marcar de novo substitui); rotinas empilham, até 4 ícones + `+N`. |
@@ -58,9 +58,10 @@ Tudo abaixo foi decidido, não é sugestão. Mudanças exigem editar este doc.
 | D16 | Export | Export/import JSON dos dados. Só isso na v1. |
 | D17 | Categorias | Duas: **evento** (célula inteira, vira barra) e **rotina** (ícone na base, dia a dia). |
 | D18 | Detalhes do dia | Duplo clique abre modal com título, detalhes, rotinas e feriado. |
-| D19 | Dia da semana | Inicial única ao lado do número (`12 S`). |
-| D20 | Nome do feriado | Texto truncado na célula, completo no hover e no modal. |
+| D19 | Dia da semana | Abreviação de 3 letras ao lado do número (`12 sáb`), centro alinhado. |
+| D20 | Nome do feriado | Bolinha + nome no rodapé da célula. O nome encolhe quando as rotinas tomam a largura; a bolinha nunca. |
 | D21 | Emoji da atividade | Seletor em grade no editor, com 24 opções. |
+| D22 | Camadas da célula | O evento pinta a célula inteira; número, dia da semana, feriado e rotinas ficam **por cima** da pintura (z-index 3), em branco. |
 
 ---
 
@@ -196,7 +197,18 @@ Nada de altura fixa em px: as células dividem o espaço disponível. A tipograf
 do dia escala com `cqw`, então o grid respira igual em um notebook de 13" e em um monitor
 de 32".
 
-### 6.2 Regras de célula
+### 6.2 Camadas da célula
+
+Três camadas empilhadas na mesma área:
+
+1. **Fundo** — cor de dia útil/fim de semana.
+2. **Evento** (z-index 2) — cor cheia de borda a borda, com o título centralizado.
+3. **Conteúdo do dia** (z-index 3) — cabeçalho (`19 qui`) no topo, rodapé com feriado
+   e rotinas na base. Sobre um dia pintado esse texto vira branco.
+
+O evento nunca esconde o número do dia: quem cobre a célula é a cor, não a informação.
+
+### 6.3 Regras de célula
 
 - **Meses curtos:** fevereiro renderiza 28 (ou 29) células; as colunas 29–31 ficam vazias e
   não recebem clique. Idem para os meses de 30 dias.
@@ -350,8 +362,14 @@ móveis em vários anos — é onde esse tipo de código costuma errar.
 
 ### 9.4 Persistência (D1)
 
-`localStorage`, chave `cyp:v1`, escrita com debounce de 400ms. `schemaVersion` no payload,
-com migrations em cadeia. Export/import JSON (D16) é o backup enquanto não há servidor — e a
+`localStorage`, chave `cyp:v1`, escrita com debounce de 400ms, versionada em `SCHEMA_VERSION`
+com `migrate` no persist.
+
+**v1 → v2:** `kind`, `title` e `details` não existiam. Como toda marcação do v1 pintava a
+célula inteira — o comportamento de evento — as atividades antigas migram para `kind: 'event'`,
+e a antiga `note` vira `details`. Sem essa migração elas caíam no ramo "não é evento" e
+apareciam como rotinas, embora o editor mostrasse "Evento" (um `<select>` sem valor exibe a
+primeira opção). Foi assim que o bug apareceu em produção. Export/import JSON (D16) é o backup enquanto não há servidor — e a
 UI lembra disso se nunca houve export e existem mais de 50 marks.
 
 **Fase 2** troca só `lib/storage.ts` por um adaptador HTTP: como todo registro já tem `id`,

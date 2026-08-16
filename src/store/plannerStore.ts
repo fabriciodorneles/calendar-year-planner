@@ -8,7 +8,7 @@ import { newId, type Activity, type Mark, type Mode } from '../lib/types';
 import type { ISODate } from '../lib/dates';
 import { defaultActivities } from './defaults';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 const HISTORY_LIMIT = 50;
 
 /** O que o undo/redo captura. A UI (ano, modo, pincel) fica de fora de propósito. */
@@ -207,12 +207,39 @@ export const usePlanner = create<PlannerState>()(
     },
     {
       name: 'cyp:v1',
+      version: SCHEMA_VERSION,
       partialize: (s) => ({
         schemaVersion: s.schemaVersion,
         activities: s.activities,
         marks: s.marks,
         currentYear: s.currentYear,
       }),
+      /**
+       * v1 → v2: `kind` e `title`/`details` não existiam. Toda marcação do v1
+       * pintava a célula inteira, que é o comportamento de evento — então as
+       * atividades antigas viram eventos, preservando a aparência que o usuário
+       * já tinha. Sem isso elas caem no ramo "não é evento" e viram rotinas.
+       */
+      migrate: (persisted, version) => {
+        type LegacyMark = Omit<Mark, 'title' | 'details'> &
+          Partial<Pick<Mark, 'title' | 'details'>> & { note?: string | null };
+        const state = persisted as Omit<Partial<PlannerState>, 'activities' | 'marks'> & {
+          activities?: Array<Omit<Activity, 'kind'> & Partial<Pick<Activity, 'kind'>>>;
+          marks?: LegacyMark[];
+        };
+        if (version >= SCHEMA_VERSION) return state as PlannerState;
+
+        return {
+          ...state,
+          schemaVersion: SCHEMA_VERSION,
+          activities: (state.activities ?? []).map((a) => ({ ...a, kind: a.kind ?? 'event' })),
+          marks: (state.marks ?? []).map(({ note, ...m }) => ({
+            ...m,
+            title: m.title ?? null,
+            details: m.details ?? note ?? null,
+          })),
+        } as PlannerState;
+      },
     },
   ),
 );

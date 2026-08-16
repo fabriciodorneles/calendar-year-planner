@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import {
-  daysBetween, daysInMonth, iso, isWeekend, weekdayOf, WEEKDAY_INITIALS, type ISODate,
+  daysBetween, daysInMonth, eachDay, iso, isWeekend, weekdayOf, WEEKDAY_SHORT, type ISODate,
 } from '../lib/dates';
 import { segmentFor } from '../lib/marks';
 import type { Activity, Mark } from '../lib/types';
@@ -40,6 +40,10 @@ export const MonthRow = memo(function MonthRow({
     }];
   });
 
+  const paintedDays = new Set<ISODate>(
+    bars.flatMap(({ segment }) => eachDay(segment.start, segment.end)),
+  );
+
   const previewSegment = preview && segmentFor(
     { start: preview.start, end: preview.end } as Mark, monthStart, monthEnd,
   );
@@ -67,6 +71,7 @@ export const MonthRow = memo(function MonthRow({
               'day',
               isWeekend(year, month, day) ? 'day--weekend' : '',
               date === today ? 'day--today' : '',
+              paintedDays.has(date) ? 'day--painted' : '',
               preview && !preview.isEvent && preview.start <= date && date <= preview.end
                 ? 'day--brushing'
                 : '',
@@ -78,28 +83,37 @@ export const MonthRow = memo(function MonthRow({
           >
             <span className="day__head">
               <span className="day__num">{day}</span>
-              <span className="day__dow">{WEEKDAY_INITIALS[weekdayOf(year, month, day)]}</span>
+              <span className="day__dow">{WEEKDAY_SHORT[weekdayOf(year, month, day)]}</span>
             </span>
 
-            {holiday ? <span className="day__holiday">{holiday}</span> : null}
+            {holiday || shown.length ? (
+              <span className="day__foot">
+                {holiday ? (
+                  <span className="day__holiday">
+                    <i className="day__dot" />
+                    {holiday}
+                  </span>
+                ) : null}
 
-            {shown.length ? (
-              <span className="day__routines">
-                {shown.map((routine) => {
-                  const activity = activities.get(routine.activityId);
-                  if (!activity) return null;
-                  return (
-                    <span
-                      key={routine.id}
-                      className="routine"
-                      style={{ background: activity.color }}
-                      title={activity.name}
-                    >
-                      {activity.emoji}
-                    </span>
-                  );
-                })}
-                {overflow > 0 ? <span className="routine routine--more">+{overflow}</span> : null}
+                {shown.length ? (
+                  <span className="day__routines">
+                    {shown.map((routine) => {
+                      const activity = activities.get(routine.activityId);
+                      if (!activity) return null;
+                      return (
+                        <span
+                          key={routine.id}
+                          className="routine"
+                          style={{ background: activity.color }}
+                          title={activity.name}
+                        >
+                          {activity.emoji}
+                        </span>
+                      );
+                    })}
+                    {overflow > 0 ? <span className="routine routine--more">+{overflow}</span> : null}
+                  </span>
+                ) : null}
               </span>
             ) : null}
           </div>
@@ -117,7 +131,6 @@ export const MonthRow = memo(function MonthRow({
           style={{ gridColumn: `${startDay} / span ${span}`, background: activity.color }}
           title={`${mark.title || activity.name}${mark.details ? ` — ${mark.details}` : ''}`}
         >
-          <span className="mark__emoji" aria-label={activity.name}>{activity.emoji}</span>
           <span className="mark__title">{mark.title || activity.name}</span>
         </div>
       ))}
