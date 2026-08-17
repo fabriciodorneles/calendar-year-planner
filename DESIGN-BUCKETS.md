@@ -57,7 +57,7 @@ Tudo abaixo foi decidido, não é sugestão. Mudanças exigem editar este doc.
 | D10 | Item feito | ✓ verde no quadradinho e o texto num peso mais leve. **Nada de risco** e nada se move de lugar. |
 | D11 | Navegação | Rota no hash (`#/` e `#/buckets`) + alternador na barra superior. |
 | D12 | Undo | Histórico próprio, 50 passos, separado do calendário. Dentro de um campo, o Cmd+Z nativo manda. |
-| D13 | Persistência | `localStorage` + Supabase, mesmo desenho do calendário: tabelas próprias, pull/push incremental, merge last-write-wins. |
+| D13 | Persistência | `localStorage` + Supabase, mesmo desenho do calendário: tabelas próprias, pull completo, push incremental, merge last-write-wins. |
 | D14 | Backup | Export/import JSON **no mesmo arquivo** do calendário. Arquivo antigo (sem buckets) importa sem apagar a folha. |
 | D15 | Mobile | **Editável** no celular: 1 coluna × 8 linhas com scroll. Diferente do calendário, que é somente leitura no telefone. |
 | D16 | Títulos iniciais | Aventura, Negócios, Casamento, Financeiro, Saúde, Filhos, Pessoal, Caridade — a ordem da folha original, em português. Todos editáveis. |
