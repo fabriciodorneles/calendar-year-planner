@@ -28,14 +28,16 @@ export function GoalRow({ goal, onCommit, onToggle, onDragStart, dragging }: Pro
 
   return (
     <div className={`goal${goal.done ? ' goal--done' : ''}${dragging ? ' goal--dragging' : ''}`}>
-      <span
-        className="goal__grip"
-        aria-hidden="true"
-        onPointerDown={(event) => onDragStart(event, goal)}
-        title="Arraste para reordenar"
+      <button
+        type="button"
+        className="goal__check"
+        role="checkbox"
+        aria-checked={goal.done}
+        aria-label={goal.done ? 'Desmarcar' : 'Marcar como feito'}
+        onClick={onToggle}
       >
-        ⠿
-      </span>
+        {goal.done ? <Tick /> : null}
+      </button>
 
       <textarea
         ref={area}
@@ -59,16 +61,16 @@ export function GoalRow({ goal, onCommit, onToggle, onDragStart, dragging }: Pro
         }}
       />
 
-      <button
-        type="button"
-        className="goal__check"
-        role="checkbox"
-        aria-checked={goal.done}
-        aria-label={goal.done ? 'Desmarcar' : 'Marcar como feito'}
-        onClick={onToggle}
+      {/* A alça foi para a direita quando o quadradinho tomou a esquerda: duas
+          affordances do mesmo lado empurrariam o texto para dentro da célula. */}
+      <span
+        className="goal__grip"
+        aria-hidden="true"
+        onPointerDown={(event) => onDragStart(event, goal)}
+        title="Arraste para reordenar"
       >
-        {goal.done ? <Tick /> : null}
-      </button>
+        ⠿
+      </span>
     </div>
   );
 }
@@ -89,7 +91,7 @@ export function GoalDraft({ onCreate }: { onCreate: (text: string) => void }) {
 
   return (
     <div className="goal goal--draft">
-      <span className="goal__grip" aria-hidden="true" />
+      <span className="goal__check goal__check--ghost" aria-hidden="true" />
       <textarea
         ref={area}
         className="goal__text"
@@ -110,7 +112,7 @@ export function GoalDraft({ onCreate }: { onCreate: (text: string) => void }) {
           }
         }}
       />
-      <span className="goal__check goal__check--ghost" aria-hidden="true" />
+      <span className="goal__grip" aria-hidden="true" />
     </div>
   );
 }
