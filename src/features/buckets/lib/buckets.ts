@@ -15,10 +15,33 @@ export function defaultBuckets(now = Date.now()): Bucket[] {
   }));
 }
 
-/** Os 8 da folha, na ordem, mesmo que o dado venha bagunçado do sync. */
+/**
+ * Os 8 quadros da folha, na ordem — **um por posição**, mesmo que o sync traga
+ * mais de um candidato para a mesma.
+ *
+ * Isto já quebrou feio: bastou um aparelho empurrar um segundo conjunto de
+ * fábrica para existirem duas linhas com `order: 0`, e o antigo "ordena e corta
+ * nos 8 primeiros" passou a exibir oito vezes a posição 0 — a folha inteira
+ * virou "Aventura" e o que estava escrito nas outras posições sumiu da tela
+ * (só da tela: as linhas continuavam vivas no banco).
+ *
+ * Ganha a **mais antiga** de cada posição: é a que o aparelho criou primeiro e,
+ * portanto, a que carrega os objetivos. O desempate por `id` mantém a escolha
+ * igual em todos os aparelhos, sem depender da ordem de chegada do sync.
+ */
 export function sheetBuckets(buckets: Bucket[]): Bucket[] {
-  return buckets.filter(isLive).sort((a, b) => a.order - b.order).slice(0, BUCKET_COUNT);
+  const chosen = new Map<number, Bucket>();
+
+  for (const bucket of buckets.filter(isLive)) {
+    const current = chosen.get(bucket.order);
+    if (!current || isOlder(bucket, current)) chosen.set(bucket.order, bucket);
+  }
+
+  return [...chosen.values()].sort((a, b) => a.order - b.order).slice(0, BUCKET_COUNT);
 }
+
+const isOlder = (a: Bucket, b: Bucket): boolean =>
+  a.updatedAt !== b.updatedAt ? a.updatedAt < b.updatedAt : a.id < b.id;
 
 export function goalsOf(goals: Goal[], bucketId: string): Goal[] {
   return goals

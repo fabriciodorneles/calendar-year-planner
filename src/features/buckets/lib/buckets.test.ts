@@ -125,6 +125,40 @@ describe('folha inicial', () => {
   });
 });
 
+describe('sheetBuckets com conjuntos duplicados', () => {
+  /**
+   * Aconteceu em produção: sete aparelhos empurraram cada um os seus 8 buckets
+   * de fábrica, e o "ordena e corta nos 8 primeiros" passou a devolver oito
+   * linhas de `order: 0` — a folha inteira virou "Aventura".
+   */
+  const meu = defaultBuckets(1000).map((b, i) =>
+    i === 1 ? { ...b, title: 'Trabalho', updatedAt: 1100 } : b,
+  );
+  const intruso = defaultBuckets(2000);
+  const misturado = [...intruso, ...meu];
+
+  it('devolve 8 quadros, um por posição', () => {
+    const folha = sheetBuckets(misturado);
+    expect(folha).toHaveLength(8);
+    expect(folha.map((b) => b.order)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+  });
+
+  it('mantém o conjunto mais antigo — é ele que tem os objetivos', () => {
+    expect(sheetBuckets(misturado).map((b) => b.id)).toEqual(meu.map((b) => b.id));
+    expect(sheetBuckets(misturado)[1]!.title).toBe('Trabalho');
+  });
+
+  it('escolhe igual em qualquer ordem de chegada do sync', () => {
+    const outraOrdem = [...meu.slice(4), ...intruso.slice(2), ...meu.slice(0, 4), ...intruso.slice(0, 2)];
+    expect(sheetBuckets(outraOrdem).map((b) => b.id)).toEqual(sheetBuckets(misturado).map((b) => b.id));
+  });
+
+  it('duplicata apagada não disputa posição', () => {
+    const comLixoApagado = [...meu.map((b) => ({ ...b, deletedAt: 5000 })), ...intruso];
+    expect(sheetBuckets(comLixoApagado).map((b) => b.id)).toEqual(intruso.map((b) => b.id));
+  });
+});
+
 describe('renameBucket', () => {
   it('aceita título vazio — é como se usa menos de 8 áreas', () => {
     const buckets = defaultBuckets();

@@ -78,6 +78,19 @@ cursor daqui e ela some para sempre. Puxar tudo é mais barato que perder dado.
 atividades iniciais — e seus próprios 8 buckets — com ids distintos; mesclar
 duplicaria tudo. Quem adota também não faz push (devolveria o que acabou de chegar).
 
+**A adoção não pode depender do cursor.** O cursor é compartilhado pelas duas
+telas: quando a folha de buckets entrou, todo aparelho que já usava o calendário
+tinha cursor > 0, `firstVisit` era falso, a adoção nunca disparou e cada um
+empurrou os seus 8 buckets de fábrica — 64 linhas no banco e oito disputando a
+posição 0, com a folha inteira exibindo "Aventura". O critério certo é **não ter
+nada a perder** (`isPristine`), não "é a primeira sincronização". Tela nova que
+nascer depois cai na mesma armadilha se copiar o `firstVisit`.
+
+**Nada de `slice(0, N)` em cima de dado que vem do sync.** Era assim que
+`sheetBuckets` montava a folha, e com duplicatas ele devolvia oito vezes a mesma
+posição. Escolha uma por posição, com desempate determinístico — o mesmo em todos
+os aparelhos. Limpeza do estrago: `supabase/dedupe-buckets.sql`.
+
 **`overflow: hidden` não impede rolagem por programa.** Na folha de buckets, focar
 o último campo de uma célula cheia rolava a lista e escondia os primeiros itens em
 silêncio — e o arrasto, que mira coordenadas de tela, passava a soltar o item na
