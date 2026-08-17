@@ -100,9 +100,13 @@ type Goal = {
 
 ### 4.1 Invariantes
 
-1. **Sempre 8 buckets vivos.** Nasce assim e não há como mexer nisso pela UI.
-   `sheetBuckets()` ordena por `order` e corta em 8 — se o sync trouxer lixo de
-   uma versão futura, a folha continua desenhável.
+1. **Sempre 8 quadros na tela — um por posição.** Nasce assim e não há como mexer
+   nisso pela UI. `sheetBuckets()` escolhe **uma linha viva por `order`**, a mais
+   antiga, com desempate por `id` para a escolha ser igual em todos os aparelhos.
+   Já foi "ordena e corta nos 8 primeiros", e isso quebrou feio quando o banco
+   ganhou conjuntos duplicados (§7.1): as oito vagas foram preenchidas por oito
+   linhas de `order: 0` e a folha inteira virou "Aventura", escondendo — só
+   escondendo, nada foi apagado — o que estava escrito nas outras posições.
 2. **`order` normalizado em 0..n−1 dentro do bucket.** Apagar e reordenar
    renumeram os vizinhos. Sem isso, dois objetivos acabariam com o mesmo `order` e
    a ordem passaria a depender de quem chegou primeiro no sync.
@@ -242,6 +246,19 @@ atividades iniciais: se este aparelho nunca escreveu nada — nenhum objetivo vi
 os 8 títulos ainda de fábrica (`isPristine`) — ele adota a folha do servidor em vez
 de somar a sua. E quem adotou não faz push: seria devolver linha por linha o que
 acabou de chegar.
+
+**A adoção não olha o cursor**, e isso foi aprendido do jeito caro. A regra
+nasceu junto com o calendário exigindo `cursor === 0` ("primeira sincronização
+deste aparelho"). Só que o cursor é compartilhado pelas duas telas: quando a
+folha entrou no ar, todo aparelho que já usava o calendário chegou nela com
+cursor > 0. A adoção nunca disparou, cada aparelho empurrou os seus 8 buckets de
+fábrica, e o banco terminou com sete conjuntos duplicados — 64 linhas, oito
+delas na posição 0.
+
+O que decide é **não ter nada a perder**, não a idade da instalação: uma folha
+intocada pode adotar a do servidor a qualquer momento, porque não há o que
+sobrescrever. A limpeza das duplicatas está em `supabase/dedupe-buckets.sql`;
+ela mantém, por posição, a linha mais antiga — a que os objetivos referenciam.
 
 ---
 

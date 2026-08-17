@@ -87,10 +87,20 @@ export function useSync() {
           firstVisit
           && planner.marks.every((m) => m.deletedAt !== null)
           && remoteCalendar.activities.length > 0;
+
+        /**
+         * A folha **não** olha o `firstVisit`, e essa diferença é o conserto de
+         * um estrago real: o cursor é compartilhado com o calendário, então todo
+         * aparelho que já usava o app antes da folha existir chegou aqui com
+         * cursor > 0. "Primeira visita" era falso, a adoção nunca acontecia, e
+         * cada aparelho empurrou os seus 8 buckets de fábrica — sete conjuntos
+         * duplicados no banco, oito linhas disputando a posição 0.
+         *
+         * O que importa não é o cursor, é não ter nada a perder: se esta folha
+         * está intocada, adotar a do servidor não apaga nada de ninguém.
+         */
         const bucketsAdopted =
-          firstVisit
-          && isPristine(buckets.buckets, buckets.goals)
-          && remoteBuckets.buckets.length > 0;
+          isPristine(buckets.buckets, buckets.goals) && remoteBuckets.buckets.length > 0;
 
         if (calendarAdopted) {
           usePlanner.setState({
