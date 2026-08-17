@@ -65,6 +65,15 @@ lidos como outra coisa (atividades viraram rotinas silenciosamente).
 `#` de um login anterior e o retorno vira `##access_token=...`, que o parser do
 Supabase ignora — o token chega e a sessão nunca é criada.
 
+**O cursor do sync é a hora do INÍCIO da passada.** Com a hora do fim, uma edição
+feita durante a sincronização nasce com carimbo menor que o cursor novo e nunca
+mais entra em `updatedAt > cursor` — fica presa no aparelho, sem erro e com o
+indicador verde. Aconteceu em produção. Ver `shared/store/cursor.ts`.
+
+**O pull não filtra por cursor.** O cursor é o relógio deste aparelho; o carimbo
+foi posto pelo outro. Um celular atrasado grava a linha com hora anterior ao
+cursor daqui e ela some para sempre. Puxar tudo é mais barato que perder dado.
+
 **Aparelho novo adota o remoto.** Cada instalação cria seu próprio conjunto de
 atividades iniciais — e seus próprios 8 buckets — com ids distintos; mesclar
 duplicaria tudo. Quem adota também não faz push (devolveria o que acabou de chegar).

@@ -410,14 +410,24 @@ UI lembra disso se nunca houve export e existem mais de 50 marks.
 **Sincronização (implementada).** O `localStorage` continua sendo a fonte local — o app abre e
 funciona sem rede. Por cima dele, `store/sync.ts` conversa com o Supabase:
 
-- **pull incremental:** `select * where updated_at > cursor`, só o que mudou desde a última visita;
+- **pull completo:** `select *` das duas tabelas. Já foi incremental (`updated_at > cursor`) e
+  isso perdia dado: o cursor é o relógio *deste* aparelho e o carimbo foi posto pelo *outro*.
+  Um celular alguns minutos atrasado gravava a linha com hora anterior ao cursor daqui e ela
+  ficava invisível para sempre, sem erro. São poucas centenas de linhas — trazer todas custa
+  menos que perder uma;
 - **merge:** last-write-wins por registro (`mergeById`), o lado com `updatedAt` maior vence;
 - **push:** upsert apenas dos registros tocados depois do cursor, atividades antes das marcações
   (a marcação referencia a atividade);
-- **quando:** ao entrar, ao voltar o foco da janela, e 2,5s depois de cada alteração.
+- **quando:** ao entrar, ao voltar o foco da janela, **ao sair de vista**
+  (`visibilitychange`/`pagehide`) e 2,5s depois de cada alteração.
 
 O cursor só avança **depois** do push: se ele falhar, a tentativa seguinte reenvia o mesmo
-intervalo em vez de deixar registros para trás.
+intervalo em vez de deixar registros para trás. E o valor gravado é a hora em que a passada
+**começou**, nunca a do fim — senão uma marcação feita durante a sincronização nasce com
+carimbo menor que o cursor novo e nunca mais entra em nenhum push (aconteceu em produção;
+`shared/store/cursor.ts` guarda a explicação e o teste). Pelo mesmo motivo, alteração que
+chega com uma passada em andamento fica anotada e dispara outra ao final, em vez de ser
+descartada.
 
 Como cada dia é um registro separado, edições em dispositivos diferentes se somam; só colidem de
 verdade se forem no mesmo dia. O empate no `updatedAt` mantém o local, evitando escrita à toa.

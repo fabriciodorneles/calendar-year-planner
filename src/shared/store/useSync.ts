@@ -33,6 +33,7 @@ export function useSync() {
   const [syncState, setSyncState] = useState<Exclude<SyncStatus, 'signed-out'>>('idle');
   const [error, setError] = useState<string | null>(null);
   const running = useRef(false);
+  const dirty = useRef(false);
   const timer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -46,15 +47,30 @@ export function useSync() {
 
     const userId = session.user.id;
 
+    const schedule = () => {
+      if (timer.current !== null) window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => void sync(), PUSH_DEBOUNCE_MS);
+    };
+
     const sync = async () => {
-      if (running.current) return;
+      // Alteração que chega no meio de uma passada não pode ser descartada:
+      // fica anotada e dispara outra assim que esta terminar.
+      if (running.current) {
+        dirty.current = true;
+        return;
+      }
       running.current = true;
       setSyncState('syncing');
       try {
         const cursor = readCursor();
+        // Marcado ANTES de qualquer ida à rede: é isto que vai virar o cursor
+        // novo. Ver o porquê em `cursor.ts` — usar a hora do fim deixava presa
+        // no aparelho qualquer edição feita durante a sincronização.
+        const startedAt = Date.now();
+
         const [remoteCalendar, remoteBuckets] = await Promise.all([
-          pullCalendar(cursor),
-          pullBuckets(cursor),
+          pullCalendar(),
+          pullBuckets(),
         ]);
 
         const planner = usePlanner.getState();
@@ -112,7 +128,7 @@ export function useSync() {
 
         // O cursor só avança depois do push: se ele falhar, a próxima tentativa
         // reenvia o mesmo intervalo em vez de deixar registros para trás.
-        writeCursor(Date.now());
+        writeCursor(startedAt);
         setError(null);
         setSyncState('idle');
       } catch (cause) {
@@ -120,25 +136,39 @@ export function useSync() {
         setSyncState('error');
       } finally {
         running.current = false;
+        if (dirty.current) {
+          dirty.current = false;
+          schedule();
+        }
       }
     };
 
     void sync();
 
-    const schedule = () => {
-      if (timer.current !== null) window.clearTimeout(timer.current);
-      timer.current = window.setTimeout(() => void sync(), PUSH_DEBOUNCE_MS);
-    };
-
     const unsubscribePlanner = usePlanner.subscribe(schedule);
     const unsubscribeBuckets = useBuckets.subscribe(schedule);
     const onFocus = () => void sync();
+
+    /**
+     * Sair de vista é o último momento garantido para empurrar. No celular,
+     * bloquear a tela ou trocar de app congela o `setTimeout` do debounce: a
+     * edição ficava esperando 2,5s que nunca chegavam. Aqui o push sai na hora,
+     * sem passar pelo debounce.
+     */
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') void sync();
+    };
+
     window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', onHide);
 
     return () => {
       unsubscribePlanner();
       unsubscribeBuckets();
       window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', onHide);
       if (timer.current !== null) window.clearTimeout(timer.current);
     };
   }, [session]);
