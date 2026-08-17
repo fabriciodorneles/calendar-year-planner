@@ -1,4 +1,5 @@
 import { supabase } from '@/shared/lib/supabase';
+import { pendingSince } from '@/shared/store/cursor';
 import type { Bucket, Goal } from '../lib/types';
 
 /** Linhas como o Postgres as guarda (snake_case; `order` e `text` são palavras
@@ -35,11 +36,12 @@ const fromGoalRow = (r: GoalRow): Goal => ({
 
 export type BucketsSnapshot = { buckets: Bucket[]; goals: Goal[] };
 
-/** Puxa só o que mudou desde a última visita — o cursor é o `updated_at`. */
-export async function pullBuckets(since: number): Promise<BucketsSnapshot> {
+/** Puxa tudo, sem filtrar por cursor — mesmo motivo do calendário: o filtro
+ *  comparava relógios de aparelhos diferentes e escondia linhas em silêncio. */
+export async function pullBuckets(): Promise<BucketsSnapshot> {
   const [buckets, goals] = await Promise.all([
-    supabase.from('buckets').select('*').gt('updated_at', since),
-    supabase.from('bucket_items').select('*').gt('updated_at', since),
+    supabase.from('buckets').select('*'),
+    supabase.from('bucket_items').select('*'),
   ]);
 
   if (buckets.error) throw buckets.error;
@@ -57,8 +59,8 @@ export async function pushBuckets(
   userId: string,
   since: number,
 ): Promise<number> {
-  const buckets = snapshot.buckets.filter((b) => b.updatedAt > since);
-  const goals = snapshot.goals.filter((g) => g.updatedAt > since);
+  const buckets = pendingSince(snapshot.buckets, since);
+  const goals = pendingSince(snapshot.goals, since);
   if (!buckets.length && !goals.length) return 0;
 
   // Buckets antes dos objetivos: o objetivo referencia o bucket.

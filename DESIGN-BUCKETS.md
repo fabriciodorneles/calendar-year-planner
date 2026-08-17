@@ -230,6 +230,10 @@ calendário e dos buckets em paralelo, merge por `mergeById` (last-write-wins), 
 das duas, e só então o cursor avança. Um cursor único de propósito: com um cursor
 por tela, uma falha de rede deixaria metade dos dados para trás sem sinal na UI.
 
+O cursor gravado é a hora em que a passada **começou** e o pull não filtra por ele —
+as duas regras estão explicadas em `shared/store/cursor.ts`, e ambas nasceram de dado
+perdido de verdade (DESIGN.md §9.4).
+
 ### 7.1 Aparelho novo adota o remoto
 
 Cada instalação cria seus próprios 8 buckets, com ids distintos. Mesclar dois

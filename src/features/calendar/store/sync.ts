@@ -1,4 +1,5 @@
 import { supabase } from '@/shared/lib/supabase';
+import { pendingSince } from '@/shared/store/cursor';
 import type { Activity, Mark } from '../lib/types';
 
 /** Linhas como o Postgres as guarda (snake_case, datas em colunas próprias). */
@@ -37,11 +38,17 @@ const fromMarkRow = (r: MarkRow): Mark => ({
 
 export type CalendarSnapshot = { activities: Activity[]; marks: Mark[] };
 
-/** Puxa só o que mudou desde a última visita — o cursor é o `updated_at`. */
-export async function pullCalendar(since: number): Promise<CalendarSnapshot> {
+/**
+ * Puxa tudo, sem filtrar por cursor. O filtro `updated_at > cursor` parecia
+ * economia, mas comparava o relógio deste aparelho com o carimbo posto por
+ * outro: um celular alguns minutos atrasado gravava a linha com hora anterior
+ * ao cursor daqui e ela ficava invisível para sempre — sem erro nenhum. São
+ * poucas centenas de linhas; trazer todas custa menos que perder uma.
+ */
+export async function pullCalendar(): Promise<CalendarSnapshot> {
   const [activities, marks] = await Promise.all([
-    supabase.from('activities').select('*').gt('updated_at', since),
-    supabase.from('marks').select('*').gt('updated_at', since),
+    supabase.from('activities').select('*'),
+    supabase.from('marks').select('*'),
   ]);
 
   if (activities.error) throw activities.error;
@@ -59,8 +66,8 @@ export async function pushCalendar(
   userId: string,
   since: number,
 ): Promise<number> {
-  const activities = snapshot.activities.filter((a) => a.updatedAt > since);
-  const marks = snapshot.marks.filter((m) => m.updatedAt > since);
+  const activities = pendingSince(snapshot.activities, since);
+  const marks = pendingSince(snapshot.marks, since);
   if (!activities.length && !marks.length) return 0;
 
   if (activities.length) {
