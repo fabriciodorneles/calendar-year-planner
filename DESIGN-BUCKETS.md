@@ -63,6 +63,7 @@ Tudo abaixo foi decidido, não é sugestão. Mudanças exigem editar este doc.
 | D16 | Títulos iniciais | Aventura, Negócios, Casamento, Financeiro, Saúde, Filhos, Pessoal, Caridade — a ordem da folha original, em português. Todos editáveis. |
 | D17 | Título vazio | **Permitido**, e é assim que se usa menos de 8 áreas: o quadro fica em branco e sai da leitura. Continua existindo e guardando seus objetivos. |
 | D18 | Ícone | SVG self-hosted em `public/`, com o grid do ano e stickers de cor. PNG de 180px para o atalho do iOS, que não lê SVG. |
+| D19 | Quadradinho | **À esquerda do texto**, centrado na **primeira linha** — não à direita como na folha original. Com objetivo de duas ou três linhas, o check à direita ficava boiando no meio do bloco, longe do que ele marca. |
 
 ### Por que mobile editável aqui e não no calendário
 
@@ -193,7 +194,7 @@ pela lateral.
 | Editar objetivo | Clicar no texto. Grava ao sair do campo ou no Enter. |
 | Apagar objetivo | Apagar todo o texto e sair (D8). |
 | Reordenar | Arrastar pela alça `⠿` (D9). |
-| Tickar | Clicar no quadradinho. |
+| Tickar | Clicar no quadradinho, à esquerda do texto (D19). |
 | Virar a folha | Botão `2×4`/`4×2` na barra. |
 | Trocar a fonte | Seletor na barra. |
 | Desfazer | `Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z` ou os botões da barra. |

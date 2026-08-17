@@ -98,6 +98,11 @@
 
 /* ---- Lista de objetivos ---- */
 .bucket__goals {
+  /* Tamanho e entrelinha do objetivo num lugar só: o quadradinho se dimensiona
+     a partir deles (em `em`), então continuam alinhados em qualquer viewport,
+     inclusive nos extremos do `clamp`. */
+  --goal-size: clamp(9px, 1.7cqh, 23px);
+  --goal-line: 1.25;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -113,11 +118,12 @@
 /* Onde o item vai cair durante o arrasto. */
 .goal-slot--over { box-shadow: inset 0 2px 0 var(--sheet-ink); }
 
-/* Centro alinhado: num objetivo que quebra em duas linhas o quadradinho fica no
-   meio do texto, como na folha original — não grudado na primeira linha. */
+/* O quadradinho vem antes do texto e encosta no topo: num objetivo de duas
+   linhas ele acompanha a PRIMEIRA linha, alinhado com as letras, em vez de
+   flutuar no meio do bloco. Diverge da folha original de propósito (D19). */
 .goal {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.8cqh;
   min-width: 0;
 }
@@ -130,8 +136,8 @@
   resize: none;
   overflow: hidden;
   font-family: inherit;
-  font-size: clamp(9px, 1.7cqh, 23px);
-  line-height: 1.25;
+  font-size: var(--goal-size);
+  line-height: var(--goal-line);
   color: inherit;
   padding: 0;
   outline-offset: 2px;
@@ -146,11 +152,16 @@
 .bucket:hover .goal--draft .goal__text::placeholder,
 .goal--draft .goal__text:focus::placeholder { color: var(--sheet-faint); }
 
-/* Quadradinho da referência: contorno fino, sem preenchimento. */
+/* Quadradinho da referência: contorno fino, sem preenchimento.
+   Medido em `em` sobre o tamanho do objetivo, e deslocado por metade da sobra
+   da linha — é o que o deixa centrado na primeira linha do texto, e não na
+   caixa inteira quando o objetivo quebra em duas. */
 .goal__check {
   flex: 0 0 auto;
-  width: clamp(10px, 1.9cqh, 22px);
-  height: clamp(10px, 1.9cqh, 22px);
+  font-size: var(--goal-size);
+  width: 1.05em;
+  height: 1.05em;
+  margin-top: calc((var(--goal-line) * 1em - 1.05em) / 2);
   padding: 0;
   border: 1.5px solid var(--sheet-ink);
   background: none;
@@ -185,7 +196,7 @@
   flex: 0 0 auto;
   width: 1.6cqh;
   font-size: clamp(7px, 1.5cqh, 18px);
-  line-height: 1;
+  line-height: var(--goal-line);   /* acompanha a primeira linha, como o check */
   color: var(--sheet-faint);
   opacity: 0;
   cursor: grab;
@@ -245,9 +256,7 @@
   /* Não existe hover no toque: aqui os convites do quadro vazio ficam sempre visíveis. */
   .bucket__title::placeholder,
   .goal--draft .goal__text::placeholder { color: var(--sheet-faint); }
-  .bucket__goals { gap: 6px; }
+  .bucket__goals { gap: 6px; --goal-size: 15px; }
   .goal { gap: 8px; }
-  .goal__text { font-size: 15px; }
-  .goal__check { width: 16px; height: 16px; }
   .goal__grip { opacity: 1; width: 12px; font-size: 12px; }
 }
