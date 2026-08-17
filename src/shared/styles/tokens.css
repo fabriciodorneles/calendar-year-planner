@@ -8,6 +8,14 @@
   --ink: #4A4239;
   --today: #B08968;
 
+  /* Folha de buckets: papel branco e tinta escura, fiel à referência —
+     mais contrastada que o calendário de propósito (DESIGN-BUCKETS.md D5). */
+  --sheet: #F7F6F2;
+  --sheet-ink: #33322E;
+  --sheet-faint: #9A968C;
+  --sheet-soft: #6E6A61;
+  --check: #2F7D3E;
+
   --dock-collapsed: 44px;
   --dock-expanded: 248px;
   --label-w: 68px;

@@ -1,0 +1,93 @@
+/* ---- Casca comum às duas telas: barra de controles, modais e sync ----
+   Ficava no CSS do calendário; virou compartilhado quando a folha de buckets
+   passou a usar a mesma barra e o mesmo modal de login. */
+
+.toolbar {
+  position: fixed;
+  top: 8px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 20;
+  background: rgba(251, 249, 245, 0.9);
+  padding: 4px 6px;
+  border: 1px solid var(--rule);
+  /* Discreta em repouso para não competir com o grid nem com a folha. */
+  opacity: 0.5;
+  transition: opacity 120ms ease;
+}
+
+.toolbar:hover, .toolbar:focus-within { opacity: 1; }
+.toolbar button { padding: 2px 8px; font-size: 13px; line-height: 1.6; }
+.toolbar button:disabled { opacity: 0.35; cursor: default; }
+.toolbar__year { font-size: 15px; font-weight: 700; letter-spacing: 0.04em; padding: 0 4px; }
+
+/* Alternador de tela: dois botões colados, o atual marcado. */
+.toolbar__nav { display: flex; }
+.toolbar__nav button { border-radius: 0; }
+.toolbar__nav button + button { border-left: none; }
+.toolbar__nav button[aria-pressed='true'] {
+  background: var(--cell-weekend);
+  box-shadow: inset 0 -2px 0 var(--today);
+}
+
+.toolbar__font {
+  border: 1px solid var(--rule-strong);
+  background: rgba(255, 255, 255, 0.6);
+  padding: 2px 4px;
+  font-size: 12px;
+  max-width: 108px;
+}
+
+/* ---- Modais ---- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(74, 66, 57, 0.28);
+  display: grid;
+  place-items: center;
+  z-index: 30;
+}
+
+.modal {
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  width: min(560px, 92vw);
+  max-height: 82vh;
+  overflow: auto;
+  padding: 18px 20px;
+}
+
+.modal h2 { margin: 0 0 14px; font-size: 17px; letter-spacing: 0.06em; text-transform: uppercase; }
+.modal__block { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
+.modal__actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
+.modal__actions button { padding: 5px 12px; }
+.modal__hint { font-size: 12px; color: var(--label); margin: 12px 0 0; line-height: 1.5; }
+
+/* ---- Indicador de sincronização ---- */
+.sync { padding: 2px 8px; font-size: 13px; }
+.sync--idle { color: #4F6D3A; }
+.sync--syncing { color: var(--today); }
+.sync--error { color: #B23A2F; }
+.sync--signed-out { color: var(--label); }
+
+.modal__block input[type='email'] {
+  border: 1px solid var(--rule-strong); background: var(--cell); padding: 6px 8px; width: 100%;
+}
+
+.modal__oauth { display: flex; gap: 8px; margin: 12px 0; }
+.modal__oauth button { flex: 1; padding: 8px 10px; font-size: 13px; }
+
+/* Celular: a barra passa a ocupar a largura e quebra em duas linhas em vez de
+   escapar pela esquerda da tela. */
+@media (max-width: 700px) {
+  .toolbar {
+    left: 8px;
+    right: 8px;
+    top: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    opacity: 1;
+  }
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeById } from './sync';
+import { mergeById } from './merge';
 
 const rec = (id: string, updatedAt: number, tag = '') => ({ id, updatedAt, tag });
 

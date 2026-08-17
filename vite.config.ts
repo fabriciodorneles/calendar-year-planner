@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -6,4 +7,9 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   base: process.env.VITE_BASE ?? '/calendar-year-planner/',
   plugins: [react()],
+  // Import entre pastas (feature → shared) usa '@/'; dentro da própria pasta,
+  // caminho relativo. Sem isso um arquivo de feature veria '../../../shared'.
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
 });
