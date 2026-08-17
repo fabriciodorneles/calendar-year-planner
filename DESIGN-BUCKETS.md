@@ -46,7 +46,7 @@ Tudo abaixo foi decidido, não é sugestão. Mudanças exigem editar este doc.
 | # | Decisão | Escolha |
 |---|---------|---------|
 | D1 | Escopo temporal | **Atemporal.** Uma folha só, sem ano. O seletor de ano do calendário não afeta esta tela. |
-| D2 | Quantidade de buckets | **Sempre 8**, nem mais nem menos. Sem criar, sem remover; só renomear. |
+| D2 | Quantidade de buckets | **Sempre 8 quadros**, nem mais nem menos. Sem criar, sem remover; só renomear. |
 | D3 | Objetivos por bucket | Até **6**. Chegando lá, a linha de escrita some. |
 | D4 | Layout | Dois arranjos com botão: **2×4 retrato** (padrão, fiel à folha) e **4×2 paisagem**. |
 | D5 | Estética | Papel branco (`--sheet`), tinta quase preta, réguas grossas, **tudo manuscrito** — deliberadamente diferente do bege/condensado do calendário. |
@@ -61,6 +61,8 @@ Tudo abaixo foi decidido, não é sugestão. Mudanças exigem editar este doc.
 | D14 | Backup | Export/import JSON **no mesmo arquivo** do calendário. Arquivo antigo (sem buckets) importa sem apagar a folha. |
 | D15 | Mobile | **Editável** no celular: 1 coluna × 8 linhas com scroll. Diferente do calendário, que é somente leitura no telefone. |
 | D16 | Títulos iniciais | Aventura, Negócios, Casamento, Financeiro, Saúde, Filhos, Pessoal, Caridade — a ordem da folha original, em português. Todos editáveis. |
+| D17 | Título vazio | **Permitido**, e é assim que se usa menos de 8 áreas: o quadro fica em branco e sai da leitura. Continua existindo e guardando seus objetivos. |
+| D18 | Ícone | SVG self-hosted em `public/`, com o grid do ano e stickers de cor. PNG de 180px para o atalho do iOS, que não lê SVG. |
 
 ### Por que mobile editável aqui e não no calendário
 
@@ -145,14 +147,14 @@ dois sem um segundo conjunto de tamanhos.
 
 ### 5.2 A conta que faz 6 objetivos caberem
 
-Cada célula tem 25cqh (um quarto da folha). O conteúdo máximo soma ~23,7cqh:
+Cada célula tem 25cqh (um quarto da folha). O conteúdo máximo soma ~21cqh:
 
 | Parte | Custo |
 |---|---|
 | padding vertical | 2,4cqh |
 | título (3,2cqh × 1,15 + 0,3) | 4,0cqh |
 | gap título→lista | 0,6cqh |
-| 6 objetivos (1,95cqh × 1,2) | 14,0cqh |
+| 6 objetivos (1,7cqh × 1,25) | 12,8cqh |
 | 5 gaps entre objetivos | 1,25cqh |
 
 Mexer em qualquer um desses valores pede refazer a conta — está verificado nas 4
@@ -182,7 +184,7 @@ pela lateral.
 
 | Ação | Como |
 |------|------|
-| Renomear bucket | Clicar no título e digitar. Enter confirma, Esc desiste, sair do campo grava. Título vazio volta ao anterior. |
+| Renomear bucket | Clicar no título e digitar. Enter confirma, Esc desiste, sair do campo grava. Apagar o título deixa o quadro sem nome (D17). |
 | Criar objetivo | Digitar na linha em branco do fim. **Enter cria e já abre a próxima linha**; sair do campo também cria. |
 | Editar objetivo | Clicar no texto. Grava ao sair do campo ou no Enter. |
 | Apagar objetivo | Apagar todo o texto e sair (D8). |
@@ -245,6 +247,9 @@ A entrada da segunda tela dividiu o `src/` por feature. Nada de comportamento mu
 na reorganização; só caminhos de import.
 
 ```
+public/                       # copiado cru para a raiz do build
+  favicon.svg                 # ícone da aba: grid do ano com stickers
+  apple-touch-icon.png        # 180px, para o atalho na tela do iOS
 src/
   App.tsx                     # rota: calendário ou buckets
   main.tsx
@@ -270,6 +275,12 @@ mora na feature dona da tabela — `features/*/store/sync.ts`.
 
 `#/` e `#/buckets`, porque o GitHub Pages serve arquivo estático e `/buckets` daria
 404. Qualquer hash desconhecido cai no calendário.
+
+**Cuidado com o caminho dos ícones.** O Vite já prefixa a `base`
+(`/calendar-year-planner/`) nos assets declarados no `index.html`, então o `href`
+deles é escrito a partir da raiz (`/favicon.svg`). Usar `%BASE_URL%favicon.svg`
+faz o prefixo entrar duas vezes e o ícone dar 404 no Pages — some da aba sem
+nenhum erro no console.
 
 **Cuidado com o retorno do login.** O `redirectTo` do Supabase não pode carregar
 hash — vira `##access_token=…` e o parser ignora (DESIGN.md §9.4). Então a tela de

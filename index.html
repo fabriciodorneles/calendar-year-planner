@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Caminho da raiz: o Vite já prefixa a `base` (/calendar-year-planner/)
+         nos assets do index.html. Escrever `%BASE_URL%favicon.svg` aqui faz o
+         prefixo entrar duas vezes e o ícone dar 404 no Pages. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#FBF9F5" />
     <title>Year Planner</title>
   </head>
   <body>
