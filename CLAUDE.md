@@ -105,5 +105,9 @@ login o token vem em `#access_token=…`; escrever `#/buckets` antes de
 - Comentários explicam **por que**, não o que. Em português, como o resto do projeto.
 - Nomes de domínio em inglês no código (`Mark`, `Activity`, `kind`); textos de UI em português.
 - Mensagens de commit em inglês.
+- **PR e merge sem perguntar.** O dono autorizou: abra o PR, espere o CI ficar
+  verde e mergeie (rebase, para a `main` seguir linear). O deploy sai sozinho no
+  push. Continue perguntando antes de coisa que o CI não pega — apagar dado,
+  rodar SQL no banco, mudar credencial.
 - Lógica de datas e sobreposição **tem** teste. UI não tem teste automatizado —
   valide dirigindo o app num browser real (foi assim que quase todos os bugs acima apareceram).
