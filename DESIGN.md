@@ -61,6 +61,7 @@ Tudo abaixo foi decidido, não é sugestão. Mudanças exigem editar este doc.
 | D19 | Dia da semana | Abreviação de 3 letras ao lado do número (`12 sáb`), centro alinhado. |
 | D20 | Nome do feriado | Bolinha + nome no rodapé da célula. O nome encolhe quando as rotinas tomam a largura; a bolinha nunca. |
 | D21 | Emoji da atividade | Seletor em grade rolável no editor, ~120 opções agrupadas por afinidade. |
+| D24 | Login | OAuth Google e GitHub (um clique) + magic link como alternativa. |
 | D23 | Repetição | Materializada em ocorrências reais, semanal ou quinzenal, até o fim do ano. |
 | D22 | Camadas da célula | O evento pinta a célula inteira; número, dia da semana, feriado e rotinas ficam **por cima** da pintura (z-index 3), em branco. |
 
@@ -455,8 +456,14 @@ Pendente: painel de estatísticas com metas e sequências, e o modo Inspeção c
 Supabase (Postgres + auth por magic link) · RLS por usuário · pull/push incremental com merge
 last-write-wins · offline-first preservado.
 
+**Login:** OAuth do Google e do GitHub, um clique. O magic link continua disponível, mas o SMTP
+compartilhado do Supabase limita a poucos envios por hora — é fácil bater o rate limit testando,
+e foi o que motivou o OAuth.
+
 **Pendências conhecidas:** os índices `activities_user_idx` e `marks_user_start_idx` ainda não
-foram criados (irrelevante no volume atual, ~400 linhas); e a `service_role` nunca entra no front.
+foram criados (irrelevante no volume atual, ~400 linhas); a `service_role` nunca entra no front;
+e qualquer pessoa que chegue à URL pode criar conta e gravar no projeto Supabase — se isso
+incomodar, uma policy restringindo por e-mail resolve.
 
 ### Backlog (não priorizado)
 Export PNG · CSS de impressão A3/A2 · temas · aniversários recorrentes · atalho de "repetir
