@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/shared/lib/supabase';
 import type { Activity, Mark } from '../lib/types';
 
 /** Linhas como o Postgres as guarda (snake_case, datas em colunas próprias). */
@@ -35,33 +35,10 @@ const fromMarkRow = (r: MarkRow): Mark => ({
   updatedAt: r.updated_at, deletedAt: r.deleted_at,
 });
 
-/**
- * Last-write-wins por registro: o lado com `updatedAt` maior vence, e cada dia
- * é um registro separado, então edições em dias diferentes se somam em vez de
- * competir. Depende dos relógios dos dispositivos estarem razoavelmente certos.
- */
-export function mergeById<T extends { id: string; updatedAt: number }>(
-  local: T[],
-  remote: T[],
-): { merged: T[]; changed: boolean } {
-  const byId = new Map(local.map((item) => [item.id, item]));
-  let changed = false;
-
-  for (const item of remote) {
-    const mine = byId.get(item.id);
-    if (!mine || item.updatedAt > mine.updatedAt) {
-      byId.set(item.id, item);
-      changed = true;
-    }
-  }
-
-  return { merged: [...byId.values()], changed };
-}
-
-export type SyncSnapshot = { activities: Activity[]; marks: Mark[] };
+export type CalendarSnapshot = { activities: Activity[]; marks: Mark[] };
 
 /** Puxa só o que mudou desde a última visita — o cursor é o `updated_at`. */
-export async function pull(since: number): Promise<SyncSnapshot> {
+export async function pullCalendar(since: number): Promise<CalendarSnapshot> {
   const [activities, marks] = await Promise.all([
     supabase.from('activities').select('*').gt('updated_at', since),
     supabase.from('marks').select('*').gt('updated_at', since),
@@ -77,7 +54,11 @@ export async function pull(since: number): Promise<SyncSnapshot> {
 }
 
 /** Sobe só os registros tocados depois do último push. */
-export async function push(snapshot: SyncSnapshot, userId: string, since: number): Promise<number> {
+export async function pushCalendar(
+  snapshot: CalendarSnapshot,
+  userId: string,
+  since: number,
+): Promise<number> {
   const activities = snapshot.activities.filter((a) => a.updatedAt > since);
   const marks = snapshot.marks.filter((m) => m.updatedAt > since);
   if (!activities.length && !marks.length) return 0;

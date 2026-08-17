@@ -5,6 +5,10 @@
 
 **Status:** fases 1 e 2 implementadas; sincronização (fase 3) no ar · **Autor:** Fabrício · **Data:** 2026-08-16
 
+> **Este doc cobre o calendário.** A segunda tela do app — a folha de buckets de
+> áreas da vida — tem doc própria em **[DESIGN-BUCKETS.md](./DESIGN-BUCKETS.md)**.
+> As duas dividem login, sincronização e a barra superior; o resto é independente.
+
 ---
 
 ## 1. Objetivo
@@ -344,32 +348,38 @@ persistido para dessincronizar.
 
 ### 9.1 Estrutura de pastas
 
+Com a entrada da segunda tela o `src/` passou a ser dividido por feature
+(ver DESIGN-BUCKETS.md §8). O que é do calendário:
+
 ```
 src/
   main.tsx
-  App.tsx
-  components/
-    CalendarGrid.tsx      # o grid 12×32
-    MonthRow.tsx          # uma linha; memoizada por mês
-    DayCell.tsx           # célula; nada de estado próprio
-    MarkBar.tsx           # segmento de barra multi-dia
-    ActivityDock.tsx      # dock lateral auto-colapsante
-    ActivityEditor.tsx    # CRUD de atividades
-    StatsPanel.tsx        # painel de metas/contadores
-    DayPopover.tsx        # modo Inspeção
-    YearSwitcher.tsx
-  store/
-    plannerStore.ts       # Zustand + persist
-    selectors.ts          # marks por mês, contadores, sequências
-    history.ts            # undo/redo
-  lib/
-    dates.ts              # ISODate, iteração, dias no mês, weekday
-    marks.ts              # recorte/merge da §5.1  ← núcleo testado
-    holidays.ts           # feriados BR, incl. móveis
-    storage.ts            # adaptador de persistência (troca na fase 2)
-    io.ts                 # export/import JSON
-  styles/
-    tokens.css, grid.css, ...
+  App.tsx                       # escolhe a tela pela rota
+  features/calendar/
+    CalendarScreen.tsx          # dock + grid + modais + atalhos
+    components/
+      CalendarGrid.tsx          # o grid 12×32
+      MonthRow.tsx              # uma linha; memoizada por mês
+      ActivityDock.tsx          # dock lateral auto-colapsante
+      ActivityEditor.tsx        # CRUD de atividades
+      DayModal.tsx              # detalhes do dia (§7.2)
+      EmojiPicker.tsx
+    store/
+      plannerStore.ts           # Zustand + persist + undo/redo
+      selectors.ts              # marks por mês, contadores, sequências
+      defaults.ts               # set inicial de atividades
+      sync.ts                   # linhas do Postgres ↔ Activity/Mark
+    lib/
+      dates.ts                  # ISODate, iteração, dias no mês, weekday
+      marks.ts                  # recorte/merge da §5.1  ← núcleo testado
+      holidays.ts               # feriados BR, incl. móveis
+      types.ts
+    styles/grid.css
+  shared/                       # usado pelas duas telas
+    components/Toolbar.tsx, SyncPanel.tsx
+    lib/router.ts, supabase.ts, io.ts, records.ts
+    store/useSync.ts, merge.ts
+    styles/tokens.css, chrome.css
 ```
 
 ### 9.2 Fluxo de dados

@@ -1,8 +1,8 @@
+import { isLive } from '@/shared/lib/records';
 import { addDays, compareISO, daysBetween, eachDay, type ISODate } from './dates';
 import { newId, type Mark } from './types';
 
-export const isLive = <T extends { deletedAt: number | null }>(record: T): boolean =>
-  record.deletedAt === null;
+export { isLive };
 
 export function covers(mark: Mark, date: ISODate): boolean {
   return compareISO(mark.start, date) <= 0 && compareISO(date, mark.end) <= 0;

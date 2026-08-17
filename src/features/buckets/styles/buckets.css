@@ -1,0 +1,238 @@
+/* ---- Folha de buckets ----------------------------------------------------
+   Papel branco sobre o bege do app, réguas de tinta escura, tudo manuscrito.
+   A tipografia escala com a altura da folha (cqh), então a folha tem o mesmo
+   peso visual num notebook de 13" e num monitor de 32". */
+
+.buckets {
+  height: 100dvh;
+  padding: calc(var(--toolbar-h) + 6px) 16px 16px;
+  display: flex;
+  overflow: hidden;
+}
+
+.sheet-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sheet {
+  background: var(--sheet);
+  color: var(--sheet-ink);
+  font-family: var(--hand);
+  height: 100%;
+  max-width: 100%;
+  display: grid;
+  container-type: size;
+  box-shadow: 0 2px 18px rgba(74, 66, 57, 0.18);
+}
+
+/* Retrato: a folha da referência. Paisagem: a mesma folha deitada.
+   Em ambas a célula mede ~0.354 da altura da folha, então a tipografia em cqh
+   não precisa de dois conjuntos de tamanhos. */
+.sheet--vertical {
+  aspect-ratio: 1 / 1.4142;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+}
+
+.sheet--horizontal {
+  aspect-ratio: 1.4142 / 1;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+
+/* ---- Célula ----
+   Os tamanhos abaixo estão calculados para o pior caso caber sem cortar: numa
+   folha de altura H, cada célula tem H/4 (=25cqh), e título + 6 objetivos de uma
+   linha somam ~23,7cqh. Mexer em um deles pede refazer a conta.
+
+   `clip` em vez de `hidden` de propósito: um container `hidden` continua sendo
+   rolável por programa, e o foco no último campo rolava a lista para baixo —
+   os primeiros objetivos saíam da vista e o hit-test do arrasto passava a mirar
+   a linha errada. `clip` não rola. */
+.bucket {
+  min-width: 0;
+  min-height: 0;
+  padding: 1.8cqh 2.4cqh 0.6cqh;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6cqh;
+  overflow: clip;
+}
+
+/* Réguas só entre as células: a borda externa é o corte do papel. */
+.sheet--vertical .bucket:not(:nth-child(2n + 1)),
+.sheet--horizontal .bucket:not(:nth-child(4n + 1)) {
+  border-left: 2px solid var(--sheet-ink);
+}
+
+.sheet--vertical .bucket:nth-child(n + 3),
+.sheet--horizontal .bucket:nth-child(n + 5) {
+  border-top: 2px solid var(--sheet-ink);
+}
+
+.bucket__title {
+  border: none;
+  background: none;
+  text-align: center;
+  font-family: inherit;
+  font-weight: var(--title-weight);
+  font-size: clamp(15px, 3.2cqh, 42px);
+  line-height: 1.15;
+  color: inherit;
+  padding: 0 0 0.3cqh;
+  width: 100%;
+  outline-offset: 2px;
+}
+
+.bucket__title:focus-visible { outline: 1px dashed var(--sheet-ink); }
+
+/* ---- Lista de objetivos ---- */
+.bucket__goals {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25cqh;
+  min-height: 0;
+  overflow: clip;
+}
+
+.goal-slot { min-width: 0; }
+
+/* Onde o item vai cair durante o arrasto. */
+.goal-slot--over { box-shadow: inset 0 2px 0 var(--sheet-ink); }
+
+/* Centro alinhado: num objetivo que quebra em duas linhas o quadradinho fica no
+   meio do texto, como na folha original — não grudado na primeira linha. */
+.goal {
+  display: flex;
+  align-items: center;
+  gap: 0.8cqh;
+  min-width: 0;
+}
+
+.goal__text {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  resize: none;
+  overflow: hidden;
+  font-family: inherit;
+  font-size: clamp(10px, 1.95cqh, 26px);
+  line-height: 1.2;
+  color: inherit;
+  padding: 0;
+  outline-offset: 2px;
+}
+
+.goal__text::placeholder { color: var(--sheet-faint); }
+.goal__text:focus-visible { outline: 1px dashed var(--sheet-ink); }
+
+/* Quadradinho da referência: contorno fino, sem preenchimento. */
+.goal__check {
+  flex: 0 0 auto;
+  width: clamp(11px, 2.2cqh, 26px);
+  height: clamp(11px, 2.2cqh, 26px);
+  padding: 0;
+  border: 1.5px solid var(--sheet-ink);
+  background: none;
+  display: grid;
+  place-items: center;
+}
+
+.goal__check:hover { background: rgba(51, 50, 46, 0.06); }
+.goal__check--ghost { border-color: transparent; background: none; }
+
+.goal__tick {
+  width: 88%;
+  height: 88%;
+  fill: none;
+  stroke: var(--check);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Feito: o traço verde é o destaque; o texto recua um peso, sem risco — a folha
+   original não risca nada, e riscar apagaria a leitura do que já foi feito. */
+.goal--done .goal__text {
+  font-weight: 300;
+  color: var(--sheet-soft);
+}
+
+.goal--dragging { opacity: 0.4; }
+
+/* Alça de arrasto: some do papel até a linha ser tocada. */
+.goal__grip {
+  flex: 0 0 auto;
+  width: 1.6cqh;
+  font-size: clamp(7px, 1.5cqh, 18px);
+  line-height: 1;
+  color: var(--sheet-faint);
+  opacity: 0;
+  cursor: grab;
+  touch-action: none;   /* o gesto é arrasto, não scroll da página */
+  user-select: none;
+}
+
+.goal:hover .goal__grip,
+.goal:focus-within .goal__grip { opacity: 1; }
+.goal--draft .goal__grip { opacity: 0 !important; cursor: default; }
+
+/* ---- Celular: uma coluna, a folha cresce e a página rola ---- */
+@media (max-width: 700px) {
+  .buckets {
+    height: auto;
+    min-height: 100dvh;
+    /* A barra quebra em duas linhas nessa largura; o dobro da altura dela é o
+       que impede o primeiro título de nascer embaixo dos botões. */
+    padding: calc(var(--toolbar-h) * 2 - 8px) 10px 24px;
+    overflow: visible;
+  }
+
+  .sheet-stage { align-items: flex-start; }
+
+  .sheet,
+  .sheet--vertical,
+  .sheet--horizontal {
+    aspect-ratio: auto;
+    height: auto;
+    width: 100%;
+    container-type: normal;   /* sem altura fixa não há cqh; volta para px */
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+  }
+
+  /* Repete os mesmos seletores do desktop (inclusive os `:not(...)`): dentro de
+     um media query a especificidade continua valendo, e a régua vertical do
+     layout de duas colunas sobreviveria no empilhamento de uma coluna só. */
+  .sheet--vertical .bucket:not(:nth-child(2n + 1)),
+  .sheet--horizontal .bucket:not(:nth-child(4n + 1)) {
+    border-left: none;
+  }
+
+  .sheet--vertical .bucket:nth-child(n + 3),
+  .sheet--horizontal .bucket:nth-child(n + 5),
+  .sheet--vertical .bucket,
+  .sheet--horizontal .bucket {
+    border-top: 2px solid var(--sheet-ink);
+    padding: 12px 14px 16px;
+    gap: 8px;
+  }
+
+  .sheet--vertical .bucket:first-child,
+  .sheet--horizontal .bucket:first-child { border-top: none; }
+
+  .bucket__title { font-size: 24px; padding-bottom: 4px; }
+  .bucket__goals { gap: 6px; }
+  .goal { gap: 8px; }
+  .goal__text { font-size: 16px; }
+  .goal__check { width: 18px; height: 18px; }
+  .goal__grip { opacity: 1; width: 12px; font-size: 12px; }
+}

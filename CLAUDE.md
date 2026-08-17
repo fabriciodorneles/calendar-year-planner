@@ -1,8 +1,10 @@
 # Calendar Year Planner — notas para quem for mexer
 
-Planner pessoal: o ano inteiro numa tela, uma linha por mês, clicável.
-As decisões de produto e a arquitetura estão em **[DESIGN.md](./DESIGN.md)** —
-leia antes de mudar comportamento; ele é a fonte da verdade, não este arquivo.
+Planner pessoal com duas telas: o **calendário** (o ano inteiro numa tela, uma linha
+por mês, clicável) e a **folha de buckets** (8 áreas da vida, até 6 objetivos cada).
+As decisões de produto e a arquitetura estão em **[DESIGN.md](./DESIGN.md)** e
+**[DESIGN-BUCKETS.md](./DESIGN-BUCKETS.md)** — leia antes de mudar comportamento;
+eles são a fonte da verdade, não este arquivo.
 
 ## Rodar
 
@@ -11,7 +13,7 @@ npm install
 npm run dev        # http://localhost:5173/calendar-year-planner/
 npm run lint       # ESLint, zero warnings tolerado
 npm run typecheck  # tsc --noEmit
-npm test           # Vitest: recorte de marcações, feriados, merge do sync
+npm test           # Vitest: recorte de marcações, feriados, buckets, merge do sync
 npm run build      # typecheck + build
 ```
 
@@ -21,15 +23,23 @@ se lint, typecheck, testes e build passarem.
 
 ## Como o código está organizado
 
+Uma pasta por tela em `src/features/`, e `src/shared/` para o que as duas usam.
+Import dentro da própria pasta é relativo; atravessando a fronteira, alias `@/`.
+
 | Onde | O quê |
 |------|-------|
-| `src/lib/dates.ts` | `ISODate` ('YYYY-MM-DD', sempre UTC), dias no mês, dia da semana |
-| `src/lib/marks.ts` | **núcleo**: recorte de sobreposição, eventos vs rotinas, repetição |
-| `src/lib/holidays.ts` | feriados nacionais, incluindo os móveis derivados da Páscoa |
-| `src/lib/types.ts` | `Activity`, `Mark`, gerador de UUID |
-| `src/store/plannerStore.ts` | zustand + persist (localStorage) + undo/redo + migrations |
-| `src/store/sync.ts` / `useSync.ts` | Supabase: pull incremental, merge, push |
-| `src/components/` | grid, linha de mês, dock, modais |
+| `features/calendar/lib/dates.ts` | `ISODate` ('YYYY-MM-DD', sempre UTC), dias no mês, dia da semana |
+| `features/calendar/lib/marks.ts` | **núcleo**: recorte de sobreposição, eventos vs rotinas, repetição |
+| `features/calendar/lib/holidays.ts` | feriados nacionais, incluindo os móveis derivados da Páscoa |
+| `features/calendar/store/plannerStore.ts` | zustand + persist (localStorage) + undo/redo + migrations |
+| `features/buckets/lib/buckets.ts` | **núcleo** da folha: limite de 6, renumeração, reordenação, folha de fábrica |
+| `features/buckets/store/bucketsStore.ts` | zustand + persist + undo/redo próprios |
+| `features/*/store/sync.ts` | mapeamento linha do Postgres ↔ tipo do app, por feature |
+| `shared/store/useSync.ts` | orquestra as duas telas: pull, merge, push, cursor |
+| `shared/store/merge.ts` | last-write-wins por registro (testado) |
+| `shared/lib/router.ts` | rota no hash (`#/`, `#/buckets`) e retorno do login |
+| `shared/components/Toolbar.tsx` | barra contextual das duas telas |
+| `supabase/buckets.sql` | script das tabelas dos buckets, para rodar no SQL Editor |
 
 ## Armadilhas já pagas — não reintroduza
 
@@ -56,7 +66,17 @@ lidos como outra coisa (atividades viraram rotinas silenciosamente).
 Supabase ignora — o token chega e a sessão nunca é criada.
 
 **Aparelho novo adota o remoto.** Cada instalação cria seu próprio conjunto de
-atividades iniciais com ids distintos; mesclar duplicaria tudo.
+atividades iniciais — e seus próprios 8 buckets — com ids distintos; mesclar
+duplicaria tudo. Quem adota também não faz push (devolveria o que acabou de chegar).
+
+**`overflow: hidden` não impede rolagem por programa.** Na folha de buckets, focar
+o último campo de uma célula cheia rolava a lista e escondia os primeiros itens em
+silêncio — e o arrasto, que mira coordenadas de tela, passava a soltar o item na
+posição errada. Use `overflow: clip` onde o conteúdo nunca deve rolar.
+
+**Rota no hash não pode ser escrita antes do Supabase ler a URL.** Na volta do
+login o token vem em `#access_token=…`; escrever `#/buckets` antes de
+`getSession()` resolver apaga o token e a sessão nunca é criada.
 
 ## Convenções
 
