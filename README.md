@@ -48,7 +48,8 @@ do mês. Clicar de novo no mesmo dia com a mesma atividade apaga.
 Oito quadros, título editável, até seis objetivos em cada. Digite na linha em branco
 do fim para criar (Enter já abre a próxima), clique no texto para editar, apague o
 texto todo para remover, arraste pela alça `⠿` para reordenar e clique no quadradinho
-para marcar como feito. Na barra dá para virar a folha entre retrato (2×4) e paisagem
+para marcar como feito. Apagar o título deixa o quadro em branco — é assim que se usa
+menos de 8 áreas sem perder o que está escrito nele. Na barra dá para virar a folha entre retrato (2×4) e paisagem
 (4×2) e trocar a fonte manuscrita. Funciona no celular, inclusive para editar.
 
 Para sincronizar os buckets é preciso rodar [`supabase/buckets.sql`](./supabase/buckets.sql)

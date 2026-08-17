@@ -63,13 +63,18 @@ export function BucketCell({ bucket }: { bucket: Bucket }) {
 
   return (
     <section className="bucket">
+      {/* Título vazio é válido: é assim que se usa menos de 8 áreas — o quadro
+          fica em branco e sai da leitura, mas continua ali para ser reaproveitado
+          (são sempre 8, DESIGN-BUCKETS.md D2). O placeholder só aparece no hover
+          para o quadro vazio não virar um convite permanente. */}
       <input
         ref={titleRef}
         className="bucket__title"
         value={title}
-        aria-label={`Nome do bucket: ${bucket.title}`}
+        placeholder="área"
+        aria-label={bucket.title ? `Nome do bucket: ${bucket.title}` : 'Bucket sem nome'}
         onChange={(event) => setTitle(event.target.value)}
-        onBlur={() => (title.trim() ? rename(bucket.id, title) : setTitle(bucket.title))}
+        onBlur={() => rename(bucket.id, title)}
         onKeyDown={(event) => {
           if (event.key === 'Enter') event.currentTarget.blur();
           if (event.key === 'Escape') {

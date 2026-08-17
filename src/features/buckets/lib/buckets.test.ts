@@ -125,6 +125,28 @@ describe('folha inicial', () => {
   });
 });
 
+describe('renameBucket', () => {
+  it('aceita título vazio — é como se usa menos de 8 áreas', () => {
+    const buckets = defaultBuckets();
+    const cleared = renameBucket(buckets, buckets[0]!.id, '');
+    expect(sheetBuckets(cleared)[0]!.title).toBe('');
+    expect(sheetBuckets(cleared)).toHaveLength(8); // o quadro continua existindo
+  });
+
+  it('esvaziar um título mantém os objetivos daquele bucket', () => {
+    const buckets = defaultBuckets();
+    const goals = addGoal([], buckets[0]!.id, 'correr');
+    const cleared = renameBucket(buckets, buckets[0]!.id, '');
+    expect(goalsOf(goals, cleared[0]!.id)).toHaveLength(1);
+  });
+
+  it('tira os espaços das pontas', () => {
+    const buckets = defaultBuckets();
+    expect(sheetBuckets(renameBucket(buckets, buckets[0]!.id, '  Trilha  '))[0]!.title)
+      .toBe('Trilha');
+  });
+});
+
 describe('isPristine', () => {
   it('folha de fábrica é pristine — o aparelho novo adota o remoto', () => {
     expect(isPristine(defaultBuckets(), [])).toBe(true);
